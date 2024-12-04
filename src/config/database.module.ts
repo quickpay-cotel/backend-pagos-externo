@@ -1,27 +1,14 @@
-// database.module.ts
-import { Module, Logger } from '@nestjs/common';
-import { Pool } from 'pg';
-import { databaseConfig } from './database.config';  // Archivo con la configuración del DB
+import { Module, Global } from '@nestjs/common';
+import { DatabaseConfig } from './database.config';
 
-// Crear el pool de conexiones de PostgreSQL
-export const pool = new Pool(databaseConfig);
-
-const logger = new Logger('DatabaseQueryLogger');
-
-// Log de las consultas SQL ejecutadas
-pool.on('query', (query, values) => {
-  if (query) {
-    logger.log(`Executing query: ${query}, with values: ${values}`);
-  }
-});
-
+@Global() // Hace que el módulo sea globalmente accesible
 @Module({
   providers: [
     {
-      provide: 'DATABASE_POOL',  // Inyectamos el pool como un proveedor
-      useValue: pool,  // Le asignamos el valor del pool de conexiones
+      provide: 'PG_CONNECTION',
+      useFactory: () => DatabaseConfig.getPool(),
     },
   ],
-  exports: ['DATABASE_POOL'],  // Exportamos para poder usarlo en otros módulos
+  exports: ['PG_CONNECTION'], // Exporta para ser usado en otros módulos
 })
 export class DatabaseModule {}

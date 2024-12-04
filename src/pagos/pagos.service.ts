@@ -59,8 +59,7 @@ export class PagosService {
 
             })
 
-            console.log(resDeudasCliente);
-            console.log("juaajaj");
+      
 
             // GENERAR TOKEN
 

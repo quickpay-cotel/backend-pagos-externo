@@ -12,9 +12,7 @@ import { Pool } from 'pg';  // Asegúrate de que el tipo Pool esté importado
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
 
-  constructor(
-    @Inject('DATABASE_POOL') private readonly pool: Pool,  // Inyectamos el pool de conexiones
-  ) {}
+  constructor(@Inject('PG_CONNECTION') private readonly pool: Pool) {}
   
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();

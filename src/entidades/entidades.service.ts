@@ -9,7 +9,6 @@ export class EntidadesService {
   async getEntidadById(id: number) {
     try {
       let datosEntidad = await this.entidadesRepository.findById(id);
-      console.log(datosEntidad);
       if (datosEntidad.length!=1) {
         throw new HttpException('No existe Entidad', HttpStatus.NOT_FOUND);
       }

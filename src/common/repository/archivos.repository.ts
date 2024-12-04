@@ -2,10 +2,10 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Pool } from 'pg';
 @Injectable()
-export class ArchivosRepository {
-    constructor(
-        @Inject('DATABASE_POOL') private readonly pool: Pool,  // Inyectamos el pool de conexiones
-      ) {}
+export class ArchivosRepository  {
+
+    constructor(@Inject('PG_CONNECTION') private readonly pool: Pool) {}
+
     async createManualFile(data: any): Promise<any> {
         const result = await this.pool.query(
             `INSERT INTO tesla.archivos

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { EntidadesService } from './entidades.service';
 import { EntidadesController } from './entidades.controller';
-import { RepositoryModule } from 'src/common/repository/repository.module';
-
+import { EntidadesRepository } from 'src/common/repository/entidades.repository';
+import { DatabaseModule } from '../config/database.module'; // Importamos DatabaseModule
 @Module({
-  imports: [RepositoryModule],
+  imports:[DatabaseModule],
   controllers: [EntidadesController],
-  providers: [EntidadesService],
+  providers: [EntidadesService,EntidadesRepository],
 })
 export class EntidadesModule {}
