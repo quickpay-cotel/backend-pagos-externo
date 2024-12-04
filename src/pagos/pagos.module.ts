@@ -4,11 +4,12 @@ import { ApiSipService } from './api.sip.service';
 import { PagosController } from './pagos.controller';
 import { ArchivosRepository } from 'src/common/repository/archivos.repository';
 import { DeudasClientesRepository } from 'src/common/repository/deudas_clientes.repository';
+import { QrGerenadoRepository } from 'src/common/repository/qr_generado.repository';
 import { DatabaseModule } from '../config/database.module'; // Importamos DatabaseModule
 @Module({
   imports:[DatabaseModule],
   controllers: [PagosController],
-  providers: [PagosService,ApiSipService,ArchivosRepository,DeudasClientesRepository],
+  providers: [PagosService,ApiSipService,ArchivosRepository,DeudasClientesRepository,QrGerenadoRepository],
   
 })
 export class PagosModule {}

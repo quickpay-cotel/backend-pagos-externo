@@ -1,18 +1,21 @@
 
 import { Injectable, Inject } from '@nestjs/common';
-import { Pool } from 'pg';
+import { IDatabase } from 'pg-promise';  // Usamos pg-promise
 @Injectable()
 export class ArchivosRepository  {
 
-    constructor(@Inject('PG_CONNECTION') private readonly pool: Pool) {}
+    private db: IDatabase<any>;
 
-    async createManualFile(data: any): Promise<any> {
-        const result = await this.pool.query(
-            `INSERT INTO tesla.archivos
+    constructor(@Inject('DB_CONNECTION') db: IDatabase<any>) {
+      this.db = db; // Inyectamos la conexión de pg-promise
+    }
+    async createManualFile(data: any,t?: IDatabase<any>): Promise<any> {
+        const query = `INSERT INTO tesla.archivos
             ( entidad_id, nombre, usuario_creacion, fecha_creacion, transaccion, tipo_archivo_id)
-            VALUES( $1, $2, $3, now(), $4, $5) RETURNING * `,
-            [data.entidad_id, data.nombre,  data.usuario_creacion, 'CREAR',  92]);
-        return result.rows[0];
+            VALUES( $1, $2, $3, now(), $4, $5) RETURNING *`;
+        const params =  [data.entidad_id, data.nombre,  data.usuario_creacion, 'CREAR',  92];
+        const result = t ? await t.one(query, params) : await this.db.one(query, params);
+        return result;
     }
 
 }

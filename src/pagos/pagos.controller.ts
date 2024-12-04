@@ -9,7 +9,8 @@ export class PagosController {
       private readonly pagosService: PagosService) { }
 
     @Post('genera-qr')
-    createPayment(@Body() createGeneraQrDto: CreateGeneraQrDto): any {
-      return this.pagosService.generaQr(createGeneraQrDto);
+    async createPayment(@Body() createGeneraQrDto: CreateGeneraQrDto){
+      return  await this.pagosService.generaQr(createGeneraQrDto);
+      
     }
 }

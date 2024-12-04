@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
-import { v4 as uuidv4 } from 'uuid';
-import { FuncionesFechas } from 'src/common/utils/funciones.fechas';
+
 @Injectable()
 export class ApiSipService {
   private token: any;
@@ -17,11 +16,6 @@ export class ApiSipService {
   async generaQr(data: any): Promise<any> {
     try {
       await this.generarToken();
-      data.fechaVencimiento = FuncionesFechas.formatDateToDDMMYYYY(new Date());
-      data.alias = uuidv4();
-      data.callback = process.env.SIP_CALLBACK;
-      data.tipoSolicitud = "API";
-      data.unicoUso = "true";
       const response = await this.axiosInstance.post('/api/v1/generaQr', data, {
         headers: { 'apikeyServicio': process.env.SIP_APIKEYSERVICIO, Authorization: `Bearer ${this.token}` },
       },);
@@ -32,7 +26,7 @@ export class ApiSipService {
         return null
       }
     } catch (error) {
-      throw error;
+      throw 'Error al generar QR';
     }
   }
   async generarToken(): Promise<any> {

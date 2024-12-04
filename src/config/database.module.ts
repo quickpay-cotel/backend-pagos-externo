@@ -5,10 +5,10 @@ import { DatabaseConfig } from './database.config';
 @Module({
   providers: [
     {
-      provide: 'PG_CONNECTION',
-      useFactory: () => DatabaseConfig.getPool(),
+      provide: 'DB_CONNECTION',
+      useFactory: () => DatabaseConfig.getDb(),
     },
   ],
-  exports: ['PG_CONNECTION'], // Exporta para ser usado en otros módulos
+  exports: ['DB_CONNECTION'], // Exporta para ser usado en otros módulos
 })
 export class DatabaseModule {}

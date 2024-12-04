@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IDatabase } from 'pg-promise';  // Usamos pg-promise
 @Injectable()
-export class DeudasClientesRepository {
+export class QrGerenadoRepository {
   private db: IDatabase<any>;
 
   constructor(@Inject('DB_CONNECTION') db: IDatabase<any>) {
@@ -15,11 +15,11 @@ export class DeudasClientesRepository {
     const marcadores = columnas.map((_, index) => `$${index + 1}`).join(', ');
     // Crear la consulta SQL dinámica
     const query = `
-          INSERT INTO tesla.deudas_clientes (${columnas.join(', ')})
+          INSERT INTO tesla.qr_generado (${columnas.join(', ')})
           VALUES (${marcadores}) RETURNING *
         `;
-
     const result = t ? await t.one(query, params) : await this.db.one(query, params);
     return result;
+
   }
 }
