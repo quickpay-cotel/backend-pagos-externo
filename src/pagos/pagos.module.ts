@@ -9,8 +9,10 @@ import { DatosConfirmadoQrRepository } from 'src/common/repository/datosconfirma
 import { EntidadesRepository } from 'src/common/repository/entidades.repository';
 import { TransaccionesCobrosRepository } from 'src/common/repository/transacciones_cobros.repository';
 import { DatabaseModule } from '../config/database.module'; // Importamos DatabaseModule
+import { NotificationsGateway } from './../notificaciones/notifications.gateway';
+
 @Module({
-  imports:[DatabaseModule],
+  imports:[DatabaseModule,NotificationsGateway],
   controllers: [PagosController],
   providers: [
     PagosService,

@@ -12,6 +12,7 @@ import { TransaccionesCobrosRepository } from "src/common/repository/transaccion
 import { EntidadesRepository } from "src/common/repository/entidades.repository";
 import { DatosConfirmadoQrRepository } from "src/common/repository/datosconfirmado_qr.repository";
 import Hashids from 'hashids'
+import { NotificationsGateway } from './../notificaciones/notifications.gateway';
 
 @Injectable()
 export class PagosService {
@@ -24,6 +25,7 @@ export class PagosService {
         private readonly datosConfirmadoQrRepository: DatosConfirmadoQrRepository,
         private readonly transaccionesCobrosRepository:TransaccionesCobrosRepository,
         private readonly entidadesRepository:EntidadesRepository,
+        private readonly notificationsGateway: NotificationsGateway
         @Inject('DB_CONNECTION') private db: IDatabase<any>
     ) { } // Inyección de dependencia
 
@@ -131,8 +133,6 @@ export class PagosService {
             let deudaCliente = await this.deudasClientesRepository.findByDeudaClienteId(qrGenerado.deuda_cliente_id)
             if(!deudaCliente) throw new HttpException(`el alias ${ confirmaPagoQrDto.alias } No cuenta con deuda`, HttpStatus.BAD_REQUEST);
             
-         
-
             let codigoPago = hashids.encode(qrGenerado.deuda_cliente_id)
 
             let insertDatosConfirmadoQr = {
@@ -153,8 +153,9 @@ export class PagosService {
             let datosConfirmadoQr = await this.datosConfirmadoQrRepository.create(insertDatosConfirmadoQr);
 
             // notificamos pagos por websoket
+            this.notificationsGateway.sendNotificationToAll(`${confirmaPagoQrDto.alias}|pagos realizado con exito`);
 
-            // notiicamos pagos por correo
+            // notificar por correo
 
             let archivo = await this.archivosRepository.findByArchivoId(deudaCliente.archivo_id);
             let entidad = await this.entidadesRepository.findById(archivo.entidad_id);
