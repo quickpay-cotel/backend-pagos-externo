@@ -17,5 +17,13 @@ export class ArchivosRepository  {
         const result = t ? await t.one(query, params) : await this.db.one(query, params);
         return result;
     }
+    async findByArchivoId(archivoId): Promise<any> {
+   
+        const query = `select a.* from tesla.archivos a where a.archivo_id  = $1 and a.estado  = 'ACTIVO'`;
+        const params =  [archivoId];
+        const result =  await this.db.one(query, params);
+        return result;
+       
+      }
 
 }

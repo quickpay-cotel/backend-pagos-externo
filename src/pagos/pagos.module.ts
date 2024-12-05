@@ -5,11 +5,21 @@ import { PagosController } from './pagos.controller';
 import { ArchivosRepository } from 'src/common/repository/archivos.repository';
 import { DeudasClientesRepository } from 'src/common/repository/deudas_clientes.repository';
 import { QrGerenadoRepository } from 'src/common/repository/qr_generado.repository';
+import { DatosConfirmadoQrRepository } from 'src/common/repository/datosconfirmado_qr.repository';
+import { EntidadesRepository } from 'src/common/repository/entidades.repository';
+import { TransaccionesCobrosRepository } from 'src/common/repository/transacciones_cobros.repository';
 import { DatabaseModule } from '../config/database.module'; // Importamos DatabaseModule
 @Module({
   imports:[DatabaseModule],
   controllers: [PagosController],
-  providers: [PagosService,ApiSipService,ArchivosRepository,DeudasClientesRepository,QrGerenadoRepository],
-  
+  providers: [
+    PagosService,
+    ApiSipService,
+    ArchivosRepository,
+    DeudasClientesRepository,
+    QrGerenadoRepository,
+    DatosConfirmadoQrRepository,
+    EntidadesRepository,
+    TransaccionesCobrosRepository]
 })
 export class PagosModule {}

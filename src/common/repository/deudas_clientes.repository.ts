@@ -22,4 +22,19 @@ export class DeudasClientesRepository {
     const result = t ? await t.one(query, params) : await this.db.one(query, params);
     return result;
   }
+
+  async findByDeudaClienteId(deudaClienteId): Promise<any> {
+   
+    const query = `select dc.* from tesla.deudas_clientes dc 
+    inner join tesla.archivos a on a.archivo_id  = dc.archivo_id and a.estado = 'ACTIVO'
+    where dc.deuda_cliente_id  = $1`;
+    const params =  [deudaClienteId];
+    const result =  await this.db.one(query, params);
+    return result;
+   
+  }
+  
+
+
+
 }
