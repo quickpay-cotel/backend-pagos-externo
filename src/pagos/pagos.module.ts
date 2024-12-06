@@ -10,9 +10,10 @@ import { EntidadesRepository } from 'src/common/repository/entidades.repository'
 import { TransaccionesCobrosRepository } from 'src/common/repository/transacciones_cobros.repository';
 import { DatabaseModule } from '../config/database.module'; // Importamos DatabaseModule
 import { NotificationsGateway } from './../notificaciones/notifications.gateway';
+import { CorreoModule } from '../correo/correo.module';  // Importa MailModule
 
 @Module({
-  imports:[DatabaseModule,NotificationsGateway],
+  imports:[CorreoModule,DatabaseModule,NotificationsGateway],
   controllers: [PagosController],
   providers: [
     PagosService,
@@ -22,6 +23,7 @@ import { NotificationsGateway } from './../notificaciones/notifications.gateway'
     QrGerenadoRepository,
     DatosConfirmadoQrRepository,
     EntidadesRepository,
+    NotificationsGateway,
     TransaccionesCobrosRepository]
 })
 export class PagosModule {}

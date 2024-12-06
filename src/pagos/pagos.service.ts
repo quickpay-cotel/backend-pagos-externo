@@ -11,8 +11,9 @@ import { ConfirmaPagoQrDto } from "./dto/confirma-pago-qr.dto";
 import { TransaccionesCobrosRepository } from "src/common/repository/transacciones_cobros.repository";
 import { EntidadesRepository } from "src/common/repository/entidades.repository";
 import { DatosConfirmadoQrRepository } from "src/common/repository/datosconfirmado_qr.repository";
-import Hashids from 'hashids'
+const Hashids = require('hashids/cjs');  // Esto es para cargar el módulo en formato CommonJS
 import { NotificationsGateway } from './../notificaciones/notifications.gateway';
+import { CorreoService } from "src/correo/correo.service";
 
 @Injectable()
 export class PagosService {
@@ -25,7 +26,8 @@ export class PagosService {
         private readonly datosConfirmadoQrRepository: DatosConfirmadoQrRepository,
         private readonly transaccionesCobrosRepository:TransaccionesCobrosRepository,
         private readonly entidadesRepository:EntidadesRepository,
-        private readonly notificationsGateway: NotificationsGateway
+        private readonly notificationsGateway: NotificationsGateway,
+        private readonly correoService: CorreoService,
         @Inject('DB_CONNECTION') private db: IDatabase<any>
     ) { } // Inyección de dependencia
 
@@ -43,7 +45,7 @@ export class PagosService {
             }
             const datosQr = await this.apiSipService.generaQr(dataGeneraQr);
             if (!datosQr.imagenQr) throw new HttpException('error al generar QR', HttpStatus.BAD_REQUEST);
-
+            let archivoId = 0;
             // TRANSACTIONAL................
             const resultado = await this.db.tx(async t => {
                 //registramos archivo manual
@@ -52,6 +54,7 @@ export class PagosService {
                     nombre: 'ARCHIVO MANUAL',
                     usuario_creacion: 1003
                 },t);
+                archivoId=resArchivo.archivo_id;
                 if (!resArchivo) throw new HttpException('nose pudo registrar deuda 1', HttpStatus.BAD_REQUEST);
                 // registramos deudas
                 let resDeudasCliente = await this.deudasClientesRepository.create({
@@ -107,7 +110,8 @@ export class PagosService {
                     alias:dataGeneraQr.alias // esta valor no retorna BISA
                 }
             });
-      
+
+            await this.archivosRepository.canbiarEstado(archivoId,'PROCESAR');
             return resultado;
             
         } catch (error) {
@@ -119,20 +123,32 @@ export class PagosService {
 
     async confirmaPagoQr(confirmaPagoQrDto: ConfirmaPagoQrDto)
     {
-        const hashids = new Hashids()
+        const hashids = new Hashids('mi-clave-secreta');
+      
+
         try {
             
             // verificar QR generado por quickpay
             let qrGenerado = await this.qrGerenadoRepository.findByAlias(confirmaPagoQrDto.alias)
-            if(!qrGenerado)  throw new HttpException('EL QR no se ha generado desde la Empresa', HttpStatus.BAD_REQUEST);
-
+            if(qrGenerado.length!=1)  throw new Error('EL QR no se ha generado desde la Empresa');
+            qrGenerado = qrGenerado[0];
             // Notificar el pago via websocket
-            if(qrGenerado.monto != confirmaPagoQrDto.monto) throw new HttpException('El monto  pagado es diferente al QR generado', HttpStatus.BAD_REQUEST);
+            if(Number(qrGenerado.monto) != confirmaPagoQrDto.monto) throw new Error( 'Monto no es igual');
+
+            // notiifcar correo
+            let result = await this.correoService.sendMail(
+                'alvaro20092004@outlook.com',  // Dirección de correo del destinatario
+                'Bienvenido a nuestra empresa',  // Asunto
+                `Hola\nBienvenido a nuestra plataforma.`,  // Texto plano
+                `<p>Hola <strong>sdsd</strong>,</p><p>Bienvenido a nuestra plataforma.</p>`,  // HTML
+            );
 
             // verificar que el QR tenga una sola deuda, ricardo indica q de cotel sera 1 deuda  para una factura
             let deudaCliente = await this.deudasClientesRepository.findByDeudaClienteId(qrGenerado.deuda_cliente_id)
-            if(!deudaCliente) throw new HttpException(`el alias ${ confirmaPagoQrDto.alias } No cuenta con deuda`, HttpStatus.BAD_REQUEST);
+            if(deudaCliente.length!=1) throw new Error(`el alias ${ confirmaPagoQrDto.alias } No cuenta con deuda`); 
             
+            deudaCliente = deudaCliente[0];
+
             let codigoPago = hashids.encode(qrGenerado.deuda_cliente_id)
 
             let insertDatosConfirmadoQr = {
@@ -182,15 +198,13 @@ export class PagosService {
                 modalidad_facturacion_id:entidad.modalidad_facturacion_id,
                 codigo_actividad_economica:deudaCliente.codigo_actividad_economica,
                 correo_cliente:deudaCliente.correo_cliente,
-                datosconfirmado_qr_id:0, // hay q insertar mas antecitos en tabla tesla.datosconfirmado_qr
+                datosconfirmado_qr_id:datosConfirmadoQr.datosconfirmado_qr_id, 
                 deuda_cliente_id:deudaCliente.deuda_cliente_id
             }
             let transaccionCobro = await this.transaccionesCobrosRepository.create(insertTransaccionCobro);
 
-
         } catch (error) {
-            // registrar LOG
-            throw error;
+            throw new HttpException(error, HttpStatus.BAD_REQUEST);
         }
     }
 }

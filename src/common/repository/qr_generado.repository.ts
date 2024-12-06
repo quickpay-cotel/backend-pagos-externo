@@ -28,7 +28,7 @@ export class QrGerenadoRepository {
    
     const query = `select * from tesla.qr_generado qg where qg.estado = 'ACTIVO' and qg.alias = $1 order by 1  desc;`;
     const params =  [alias];
-    const result =  await this.db.one(query, params);
+    const result =  await this.db.many(query, params);
     return result;
    
   }

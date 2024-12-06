@@ -27,14 +27,11 @@ export class DeudasClientesRepository {
    
     const query = `select dc.* from tesla.deudas_clientes dc 
     inner join tesla.archivos a on a.archivo_id  = dc.archivo_id and a.estado = 'ACTIVO'
-    where dc.deuda_cliente_id  = $1`;
-    const params =  [deudaClienteId];
-    const result =  await this.db.one(query, params);
+    where dc.deuda_cliente_id  = $1;`;
+    const params = [deudaClienteId];
+    const result = await this.db.any(query, params);
     return result;
+
    
   }
-  
-
-
-
 }
