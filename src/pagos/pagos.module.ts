@@ -8,6 +8,9 @@ import { QrGerenadoRepository } from 'src/common/repository/qr_generado.reposito
 import { DatosConfirmadoQrRepository } from 'src/common/repository/datosconfirmado_qr.repository';
 import { EntidadesRepository } from 'src/common/repository/entidades.repository';
 import { TransaccionesCobrosRepository } from 'src/common/repository/transacciones_cobros.repository';
+import { SegUsuariosRepository } from 'src/common/repository/seg_usuarios.repository';
+import { CobrosClientesRepository } from 'src/common/repository/cobros_clientes.repository';
+import { HistoricosDeudasRepository } from 'src/common/repository/historicos_deudas.repository';
 import { DatabaseModule } from '../config/database.module'; // Importamos DatabaseModule
 import { NotificationsGateway } from './../notificaciones/notifications.gateway';
 import { CorreoModule } from '../correo/correo.module';  // Importa MailModule
@@ -23,6 +26,9 @@ import { CorreoModule } from '../correo/correo.module';  // Importa MailModule
     QrGerenadoRepository,
     DatosConfirmadoQrRepository,
     EntidadesRepository,
+    SegUsuariosRepository,
+    CobrosClientesRepository,
+    HistoricosDeudasRepository,
     NotificationsGateway,
     TransaccionesCobrosRepository]
 })
