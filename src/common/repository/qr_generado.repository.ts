@@ -26,9 +26,9 @@ export class QrGerenadoRepository {
 
   async findByAlias(alias): Promise<any> {
    
-    const query = `select * from tesla.qr_generado qg where qg.estado = 'ACTIVO' and qg.alias = $1 order by 1  desc;`;
+    const query = `select qg.* from tesla.qr_generado qg where qg.estado = 'ACTIVO' and qg.alias = $1 order by 1  desc;`;
     const params =  [alias];
-    const result =  await this.db.many(query, params);
+    const result =  await this.db.any(query, params);
     return result;
    
   }

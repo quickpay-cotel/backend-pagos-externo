@@ -40,6 +40,7 @@ export class PagosService {
     async generaQr(createGeneraQrDto: CreateGeneraQrDto) {
 
         try {
+            
             // genera QR
             let dataGeneraQr = {
                 ...createGeneraQrDto,
@@ -50,7 +51,7 @@ export class PagosService {
                 unicoUso: "true"
             }
             const datosQr = await this.apiSipService.generaQr(dataGeneraQr);
-            if (!datosQr.imagenQr) throw new HttpException('error al generar QR', HttpStatus.BAD_REQUEST);
+            if (!datosQr.imagenQr) throw new Error('error al generar QR');
             let archivoId = 0;
             // TRANSACTIONAL................
             const resultado = await this.db.tx(async t => {
@@ -61,7 +62,7 @@ export class PagosService {
                     usuario_creacion: 1003
                 }, t);
                 archivoId = resArchivo.archivo_id;
-                if (!resArchivo) throw new HttpException('nose pudo registrar deuda 1', HttpStatus.BAD_REQUEST);
+                if (!resArchivo)  throw new Error('nose pudo registrar deuda 1'); 
                 // registramos deudas
                 let resDeudasCliente = await this.deudasClientesRepository.create({
                     archivo_id: resArchivo.archivo_id,
@@ -89,7 +90,7 @@ export class PagosService {
                     codigo_producto_sin: '83611'
 
                 }, t)
-                if (!resDeudasCliente) throw new HttpException('nose pudo registrar deuda 2', HttpStatus.BAD_REQUEST);
+                if (!resDeudasCliente) throw new Error('nose pudo registrar deuda 2'); // 
 
                 // registramos datos QR que se envio a BISA
                 await this.qrGerenadoRepository.create({
@@ -122,8 +123,7 @@ export class PagosService {
 
         } catch (error) {
 
-            // registrar LOG
-            throw error;
+            throw new HttpException(error, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -246,10 +246,8 @@ export class PagosService {
             });
 
         } catch (error) {
-            return {
-                codigo: "9999",
-                mensaje: "Algo salio mal, comuniquese con sistemas de QUICKPAY"
-            }
+            // se suguiere al,acenar LOGSSS deleste error
+            throw new HttpException(error, HttpStatus.BAD_REQUEST);
         }
     }
 }

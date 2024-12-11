@@ -4,9 +4,20 @@ import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/filters/all-exceptions.filter';
+import * as fs  from 'fs';
 dotenv.config(); // Carga las variables de entorno
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+
+
+  const httpsOptions = {
+    key: fs.readFileSync('/home/quickpay/public_html/PRD/SSL/quickpay_com_bo.key'),
+    cert: fs.readFileSync('/home/quickpay/public_html/PRD/SSL/quickpay_com_bo.crt'),
+  };
+  const app = await NestFactory.create(AppModule, {
+    httpsOptions,
+  });
+
+  //const app = await NestFactory.create(AppModule);
 
   app.useGlobalInterceptors(new ResponseInterceptor()); 
   // Habilitar CORS de manera predeterminada
@@ -18,6 +29,6 @@ async function bootstrap() {
   // Registrar el filtro globalmente
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT);
 }
 bootstrap();
