@@ -1,5 +1,9 @@
 # compiled output
 /dist
+/dist_qas
+/dist_dev
+/dist_prd
+/package-lock.json    
 /node_modules
 /build
 
