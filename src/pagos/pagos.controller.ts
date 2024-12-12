@@ -11,12 +11,9 @@ export class PagosController {
     @Post('genera-qr')
     async createPayment(@Body() createGeneraQrDto: CreateGeneraQrDto){
       return  await this.pagosService.generaQr(createGeneraQrDto);
-      
     }
     @Post('confirma-pago')
     async confirmaPago(@Body() confirmaPagoQrDto: ConfirmaPagoQrDto){
       return  await this.pagosService.confirmaPagoQr(confirmaPagoQrDto);
-  
-
     }
 }

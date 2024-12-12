@@ -139,14 +139,6 @@ export class PagosService {
             // Notificar el pago via websocket
             if (Number(qrGenerado.monto) != confirmaPagoQrDto.monto) throw new Error('Monto no es igual');
 
-            // notiifcar correo
-            /*let result = await this.correoService.sendMail(
-                'alvaro20092004@outlook.com',  // Dirección de correo del destinatario
-                'Bienvenido a nuestra empresa',  // Asunto
-                `Hola\nBienvenido a nuestra plataforma.`,  // Texto plano
-                `<p>Hola <strong>sdsd</strong>,</p><p>Bienvenido a nuestra plataforma.</p>`,  // HTML
-            );*/
-
             // verificar que el QR tenga una sola deuda, ricardo indica q de cotel sera 1 deuda  para una factura
             let deudaCliente = await this.deudasClientesRepository.findByDeudaClienteId(qrGenerado.deuda_cliente_id)
             if (deudaCliente.length != 1) throw new Error(`el alias ${confirmaPagoQrDto.alias} No cuenta con deuda`);
