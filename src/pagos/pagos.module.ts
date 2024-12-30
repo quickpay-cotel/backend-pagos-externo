@@ -1,35 +1,17 @@
-import { Module } from '@nestjs/common';
-import { PagosService } from './pagos.service';
-import { ApiSipService } from './api.sip.service';
-import { PagosController } from './pagos.controller';
-import { ArchivosRepository } from 'src/common/repository/archivos.repository';
-import { DeudasClientesRepository } from 'src/common/repository/deudas_clientes.repository';
-import { QrGerenadoRepository } from 'src/common/repository/qr_generado.repository';
-import { DatosConfirmadoQrRepository } from 'src/common/repository/datosconfirmado_qr.repository';
-import { EntidadesRepository } from 'src/common/repository/entidades.repository';
-import { TransaccionesCobrosRepository } from 'src/common/repository/transacciones_cobros.repository';
-import { SegUsuariosRepository } from 'src/common/repository/seg_usuarios.repository';
-import { CobrosClientesRepository } from 'src/common/repository/cobros_clientes.repository';
-import { HistoricosDeudasRepository } from 'src/common/repository/historicos_deudas.repository';
-import { DatabaseModule } from '../config/database.module'; // Importamos DatabaseModule
-import { NotificationsGateway } from './../notificaciones/notifications.gateway';
-import { CorreoModule } from '../correo/correo.module';  // Importa MailModule
-
+import { Module } from "@nestjs/common";
+import { PagosService } from "./pagos.service";
+import { PagosController } from "./pagos.controller";
+import { RepositoryModule } from "src/common/repository/repository.module";
+import { DatabaseModule } from "../config/database.module"; // Importamos DatabaseModule
+import { NotificationsGateway } from "./../notificaciones/notifications.gateway";
+import { CorreoModule } from "../correo/correo.module"; // Importa MailModule
+import { ExternalServiceModule } from "src/common/external-services/external-service.module";
 @Module({
-  imports:[CorreoModule,DatabaseModule,NotificationsGateway],
+  imports: [CorreoModule, DatabaseModule, NotificationsGateway,RepositoryModule,ExternalServiceModule],
   controllers: [PagosController],
   providers: [
     PagosService,
-    ApiSipService,
-    ArchivosRepository,
-    DeudasClientesRepository,
-    QrGerenadoRepository,
-    DatosConfirmadoQrRepository,
-    EntidadesRepository,
-    SegUsuariosRepository,
-    CobrosClientesRepository,
-    HistoricosDeudasRepository,
     NotificationsGateway,
-    TransaccionesCobrosRepository]
+  ],
 })
 export class PagosModule {}

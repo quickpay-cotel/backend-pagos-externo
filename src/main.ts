@@ -1,30 +1,32 @@
-import * as dotenv from 'dotenv';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { ValidationPipe } from '@nestjs/common';
-import { HttpExceptionFilter } from './common/filters/all-exceptions.filter';
-import * as fs  from 'fs';
+import * as dotenv from "dotenv";
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
+import { ValidationPipe } from "@nestjs/common";
+import { HttpExceptionFilter } from "./common/filters/all-exceptions.filter";
+import * as fs from "fs";
 dotenv.config(); // Carga las variables de entorno
 async function bootstrap() {
-
-
-  const httpsOptions = {
-    key: fs.readFileSync('/home/quickpay/public_html/PRD/SSL/quickpay_com_bo.key'),
-    cert: fs.readFileSync('/home/quickpay/public_html/PRD/SSL/quickpay_com_bo.crt'),
+  /*const httpsOptions = {
+    key: fs.readFileSync(
+      "/home/quickpay/public_html/PRD/SSL/quickpay_com_bo.key",
+    ),
+    cert: fs.readFileSync(
+      "/home/quickpay/public_html/PRD/SSL/quickpay_com_bo.crt",
+    ),
   };
   const app = await NestFactory.create(AppModule, {
     httpsOptions,
-  });
+  });*/
 
-  //const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule);
 
-  app.useGlobalInterceptors(new ResponseInterceptor()); 
+  app.useGlobalInterceptors(new ResponseInterceptor());
   // Habilitar CORS de manera predeterminada
-  app.enableCors(); 
+  app.enableCors();
 
   // Habilitar validación global para los DTOs
-  app.useGlobalPipes(new ValidationPipe({ transform: true,}));
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   // Registrar el filtro globalmente
   app.useGlobalFilters(new HttpExceptionFilter());

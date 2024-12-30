@@ -1,10 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { IDatabase } from 'pg-promise';  // Usamos pg-promise
+import { Inject, Injectable } from "@nestjs/common";
+import { IDatabase } from "pg-promise"; // Usamos pg-promise
 @Injectable()
 export class EntidadesRepository {
   private db: IDatabase<any>;
 
-  constructor(@Inject('DB_CONNECTION') db: IDatabase<any>) {
+  constructor(@Inject("DB_CONNECTION") db: IDatabase<any>) {
     this.db = db; // Inyectamos la conexión de pg-promise
   }
   async findById(entidadId): Promise<any> {
@@ -14,6 +14,5 @@ export class EntidadesRepository {
     const params = [entidadId];
     const result = await this.db.one(query, params);
     return result;
-
   }
 }

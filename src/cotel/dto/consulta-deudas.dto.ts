@@ -1,11 +1,10 @@
 import { Transform } from "class-transformer";
 import { IsIn, IsNotEmpty, IsNumber, IsString, Matches } from "class-validator";
 
-export class ConsultaDatosClienteDto {
+export class ConsultaDeudasDto {
   @IsString()
-  @IsIn(["C", "T"])
-  criterio: string;
+  contratoId: string;
 
   @IsString()
-  instancia: string;
+  servicioId: string;
 }
