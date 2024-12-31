@@ -7,7 +7,7 @@ import { HttpExceptionFilter } from "./common/filters/all-exceptions.filter";
 import * as fs from "fs";
 dotenv.config(); // Carga las variables de entorno
 async function bootstrap() {
-  /*const httpsOptions = {
+  const httpsOptions = {
     key: fs.readFileSync(
       "/home/quickpay/public_html/PRD/SSL/quickpay_com_bo.key",
     ),
@@ -17,9 +17,9 @@ async function bootstrap() {
   };
   const app = await NestFactory.create(AppModule, {
     httpsOptions,
-  });*/
+  });
 
-  const app = await NestFactory.create(AppModule);
+  //const app = await NestFactory.create(AppModule);
 
   app.useGlobalInterceptors(new ResponseInterceptor());
   // Habilitar CORS de manera predeterminada
