@@ -17,11 +17,11 @@ export class CotelController {
   constructor(private readonly cotelService: CotelService) {}
   @Post("consulta-datos-cliente")
   async consultaDatosCliente(@Body() consultaDatosClienteRequestDto: ConsultaDatosClienteDto,) {
-    return await this.cotelService.consultaDatosCliente(consultaDatosClienteRequestDto);
+      return await this.cotelService.consultaDatosCliente(consultaDatosClienteRequestDto);
   }
   @Post("consulta-deuda-cliente")
   async findOne(@Body() consultaDeudasDto: ConsultaDeudasDto,) {
-    return await this.cotelService.consultaDeudaCliente(consultaDeudasDto);
+      return await this.cotelService.consultaDeudaCliente(consultaDeudasDto);
   }
   @Post("generar-qr")
   async generarQr(@Body() deudasDto: DeudasDto) {
@@ -31,5 +31,4 @@ export class CotelController {
   async liberarReserva(@Param("transaccionId") pTransaccionId: string) {
     return await this.cotelService.liberarReserva(pTransaccionId);
   }
-  
 }
