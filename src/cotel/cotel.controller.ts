@@ -12,6 +12,7 @@ import { ConsultaDatosClienteDto } from "./dto/consulta-datos-cliente.dto";
 import { CotelService } from "./cotel.service";
 import {DeudasDto } from "./dto/deudas.dto";
 import { ConsultaDeudasDto } from "./dto/consulta-deudas.dto";
+import { ConfirmaPagoQrDto } from "./dto/confirma-pago-qr.dto";
 @Controller("cotel")
 export class CotelController {
   constructor(private readonly cotelService: CotelService) {}
@@ -30,5 +31,9 @@ export class CotelController {
   @Get("liberar-reserva/:transaccionId")
   async liberarReserva(@Param("transaccionId") pTransaccionId: string) {
     return await this.cotelService.liberarReserva(pTransaccionId);
+  }
+  @Post("confirma-pago-qr")
+  async confirmaPagoQr(@Body() confirmaPagoQrDto: ConfirmaPagoQrDto) {
+    return await this.cotelService.confirmaPagoQr(confirmaPagoQrDto);
   }
 }

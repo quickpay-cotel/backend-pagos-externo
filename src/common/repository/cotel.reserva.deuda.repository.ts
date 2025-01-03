@@ -37,4 +37,10 @@ export class CotelReservaDeudaRepository {
       : await this.db.oneOrNone(query, params);
     return result;
   }
+  async findByDeudaId(pDeudaId): Promise<any> {
+    const query = `select * from cotel.reserva_deuda where estado_reserva_id  = 1008 and estado_id = 1000 and deuda_id = $1`;
+    const params = [pDeudaId];
+    const result = await this.db.one(query, params);
+    return result;
+  }
 }

@@ -23,4 +23,10 @@ export class CotelQrGeneradoRepository {
       : await this.db.one(query, params);
     return result;
   }
+  async findByAlias(pAlias): Promise<any> {
+    const query = `select * from cotel.qr_generado where alias  = $1 and estado_id  = 1000`;
+    const params = [pAlias];
+    const result = await this.db.any(query, params);
+    return result;
+  }
 }

@@ -1,4 +1,4 @@
-import {  Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import axios, { AxiosInstance } from "axios";
 import { ConsultaDatosClienteDto } from "src/cotel/dto/consulta-datos-cliente.dto";
 
@@ -15,7 +15,7 @@ export class ApiCotelService {
     // Reservar deuda
     async reservaPago(arrayDeudasDto: any): Promise<any> {
         try {
-            const response = await this.axiosInstance.post("/pagarDeuda", {listaDeuda:arrayDeudasDto});
+            const response = await this.axiosInstance.post("/pagarDeuda", { listaDeuda: arrayDeudasDto });
             const codigo = response.data.status;
             if (codigo == "OK") {
                 return response.data.data;
@@ -42,7 +42,7 @@ export class ApiCotelService {
         }
     }
     // Consulta datos cliente
-    async consultaDeudaCliente(pContratoId: string,pServicioId:string) {
+    async consultaDeudaCliente(pContratoId: string, pServicioId: string) {
         try {
             const response = await this.axiosInstance.post("/consultarDeuda", {
                 contratoId: pContratoId,
@@ -60,17 +60,30 @@ export class ApiCotelService {
     }
     async liberarReserva(pTransaccionId: string) {
         try {
-          const response = await this.axiosInstance.post("/liberarDeuda", {
-            idTransaccion: pTransaccionId
-          });
-          const codigo = response.data.status;
-          if (codigo == "OK") {
-            return response.data.data;
-          } else {
-            return null;
-          }
+            const response = await this.axiosInstance.post("/liberarDeuda", {
+                idTransaccion: pTransaccionId
+            });
+            const codigo = response.data.status;
+            if (codigo == "OK") {
+                return response.data.data;
+            } else {
+                return null;
+            }
         } catch (error) {
-          return error;
+            return error;
         }
-      }
+    }
+    async confirmarPago(payload: any) {
+        try {
+            const response = await this.axiosInstance.post("/confirmarPago", payload);
+            const codigo = response.data.status;
+            if (codigo == "OK") {
+                return response.data.data;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            return error;
+        }
+    }
 }

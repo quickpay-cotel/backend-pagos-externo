@@ -8,9 +8,10 @@ import { RepositoryModule } from "src/common/repository/repository.module";
 import { ExternalServiceModule } from "src/common/external-services/external-service.module";
 import { NotificationsGateway } from "src/notificaciones/notifications.gateway";
 @Module({
-  imports: [CorreoModule, DatabaseModule, NotificationsGateway, RepositoryModule, ExternalServiceModule],
+  imports: [CorreoModule, DatabaseModule, RepositoryModule, ExternalServiceModule],
   controllers: [CotelController],
   providers: [
+    NotificationsGateway,
     CotelService]
 })
 export class CotelModule { }
