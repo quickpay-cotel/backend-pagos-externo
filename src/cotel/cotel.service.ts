@@ -73,6 +73,11 @@ export class CotelService {
     let idTransaccion = '';
     try {
 
+      // verificar si tiene transaccion reservadp
+      if (deudasDto.transaccionReservado) {
+        await this.liberarReserva(deudasDto.transaccionReservado);
+      }
+
       // obtener datos del contrato o telefono
       let datosCliente = await this.apiCotelService.consultaDatosCliente(deudasDto.consultaDatosClienteDto);
       if (!datosCliente) throw new Error("error al obtener datos cliente");
@@ -109,8 +114,8 @@ export class CotelService {
       // registrar en BD 
       return await this.db.tx(async (t) => {
 
-         // registrar QR generado
-         const qrGenerado = await this.cotelQrGeneradoRepository.create({
+        // registrar QR generado
+        const qrGenerado = await this.cotelQrGeneradoRepository.create({
           alias: dataGeneraQr.alias,
           callback: dataGeneraQr.callback,
           detalle_glosa: dataGeneraQr.detalleGlosa,
@@ -187,19 +192,19 @@ export class CotelService {
           // reserva deuda
           const reservaDeuda = await this.cotelReservaDeudaRepository.create({
             deuda_id: deuda.deuda_id,
-            qr_generado_id:qrGenerado.qr_generado_id,
+            qr_generado_id: qrGenerado.qr_generado_id,
             id_transaccion: idTransaccion,
             estado_reserva_id: 1004, // reservado
             fecha_expiracion: new Date(), // mas 1 hora
             estado_id: 1000
           }, t)
-          return {
-            imagen_qr: "data:image/png;base64," + datosQr.imagenQr,
-            fecha_vencimiento: datosQr.fechaVencimiento,
-            alias: dataGeneraQr.alias,
-            id_transaccion_reserva: reservaDeuda.id_transaccion
-          };
         }
+        return {
+          imagen_qr: "data:image/png;base64," + datosQr.imagenQr,
+          fecha_vencimiento: datosQr.fechaVencimiento,
+          alias: dataGeneraQr.alias,
+          id_transaccion_reserva: idTransaccion
+        };
       });
     } catch (error) {
       if (idTransaccion) {
@@ -224,73 +229,109 @@ export class CotelService {
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(confirmaPagoQrDto.alias);
       if (!qrGenerado) throw new Error("QR no generado por QUICKPAY");
 
-      // notificar al frontend del pago
-      this.notificationsGateway.sendNotificationToAll(confirmaPagoQrDto.alias + "|" + "PROCESANDO PAGO");
-      let transaccionReserva = null;
+      // verificar el monto
+      if (qrGenerado.monto != confirmaPagoQrDto.monto) throw new Error("Monto no es igual al QR generado");
+
+      // notificar al frontend 
+      await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, mensaje: 'PROCESANDO PAGO' });
+
+      let deudasReservados = [];
       // registrar en BD 
       await this.db.tx(async (t) => {
-        for (const itemQr of qrGenerado) {
-          // registrar confirmacion de pago
-          let insertConfirmQr = await this.cotelDatosConfirmadoQrRepository.create({
-            qr_generado_id: itemQr.qr_generado_id,
-            alias_sip: confirmaPagoQrDto.alias,
-            numero_orden_originante_sip: confirmaPagoQrDto.numeroOrdenOriginante,
-            monto_sip: confirmaPagoQrDto.monto,
-            id_qr_sip: confirmaPagoQrDto.idQr,
-            moneda_sip: confirmaPagoQrDto.moneda,
-            fecha_proceso_sip: confirmaPagoQrDto.fechaproceso,
-            cuenta_cliente_sip: confirmaPagoQrDto.cuentaCliente,
-            nombre_cliente_sip: confirmaPagoQrDto.nombreCliente,
-            documento_cliente_sip: confirmaPagoQrDto.documentoCliente,
-            json_sip: confirmaPagoQrDto,
-            estado: 1000
-          });
 
-          // obtiene la reserva de la deuda
-          let deudaReserva = await this.cotelReservaDeudaRepository.findByDeudaId(itemQr.deuda_id);
-          let deuda = await this.cotelDeudasRepository.findByDeudaId(itemQr.deuda_id);
+        // registrar confirmacion de pago
+        let insertConfirmQr = await this.cotelDatosConfirmadoQrRepository.create({
+          qr_generado_id: qrGenerado.qr_generado_id,
+          alias_sip: confirmaPagoQrDto.alias,
+          numero_orden_originante_sip: confirmaPagoQrDto.numeroOrdenOriginante,
+          monto_sip: confirmaPagoQrDto.monto,
+          id_qr_sip: confirmaPagoQrDto.idQr,
+          moneda_sip: confirmaPagoQrDto.moneda,
+          fecha_proceso_sip: confirmaPagoQrDto.fechaproceso,
+          cuenta_cliente_sip: confirmaPagoQrDto.cuentaCliente,
+          nombre_cliente_sip: confirmaPagoQrDto.nombreCliente,
+          documento_cliente_sip: confirmaPagoQrDto.documentoCliente,
+          json_sip: confirmaPagoQrDto,
+          estado_id: 1000
+        });
 
-          let insertTransaccion = await this.cotelTransacionesRepository.create({
-            reserva_deuda_id: deudaReserva.reserva_deuda_id,
-            datosconfirmado_qr_id: insertConfirmQr.datosconfirmado_qr_id,
-            metodo_pago_id: 1009,
-            monto_pagado: deuda.monto,
-            moneda: confirmaPagoQrDto.moneda,
-            estado_transaccion_id: 1010,
-            estado_id: 1000
-          });
+        // registra transaccion realizado
+        let insertTransaccion = await this.cotelTransacionesRepository.create({
+          datosconfirmado_qr_id: insertConfirmQr.datosconfirmado_qr_id,
+          metodo_pago_id: 1009,
+          monto_pagado: confirmaPagoQrDto.monto,
+          moneda: confirmaPagoQrDto.moneda,
+          estado_transaccion_id: 1010,
+          estado_id: 1000
+        });
 
-          transaccionReserva = deudaReserva.id_transaccion;
+        deudasReservados = await this.cotelReservaDeudaRepository.findByQrGeneradoId(qrGenerado.qr_generado_id);
+        if (deudasReservados.length == 0) throw new Error("No existe deudas reservados");
+
+        // cambair estado de deudas reservados a PAGADO
+        for (const deudaReservado of deudasReservados) {
+          await this.cotelReservaDeudaRepository.cambiarEstadoReservaByDeudaId(deudaReservado.deuda_id, 1005);
         }
+
       });
 
+      let requestParaConfirmarCotel = {
+        idTransaccion: deudasReservados[0].id_transaccion,
+        eMail: "alvaroquispesegales@gmail.com",
+        transaccionWeb: confirmaPagoQrDto.idQr,
+        entidad: "QUICKPAY",
+        canalPago: "QR",
+        fechaPago: FuncionesFechas.formatDate(new Date(), 'dd/MM/yyyy'),
+        horaPago: FuncionesFechas.obtenerHoraActual(),
+        estadoFactura: "0",
+        Cuf: "",
+        CufD: "",
+        numeroFactura: "",
+        fechaEmision: "",
+        razonSocial: "",
+        tipoDocumento: "",
+        numeroDocumento: "",
+        complementoDocumento: "",
+        urlFactura: ""
+      };
 
-      let respCotel = await this.apiCotelService.confirmarPago(
-        {
-          idTransaccion: transaccionReserva,
-          eMail: "alvaroquispesegales@gmail.com",
-          transaccionWeb: confirmaPagoQrDto.idQr,
-          entidad: "QUICKPAY",
-          canalPago: "QR",
-          fechaPago: FuncionesFechas.formatDate(new Date(), 'dd/MM/yyyy'),
-          horaPago: FuncionesFechas.obtenerHoraActual(),
-          estadoFactura: "0",
-          Cuf: "",
-          CufD: "",
-          numeroFactura: "",
-          fechaEmision: "",
-          razonSocial: "",
-          tipoDocumento: "",
-          numeroDocumento: "",
-          complementoDocumento: "",
-          urlFactura: ""
-        }
-      );
+      let respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
 
+      // notificar al frontend 
+      let datosPago = {
+        nombreCliente: confirmaPagoQrDto.nombreCliente,
+        monto: confirmaPagoQrDto.monto,
+        moneda: confirmaPagoQrDto.moneda,
+        idQr: confirmaPagoQrDto.idQr,
+        fechaproceso: confirmaPagoQrDto.fechaproceso,
+        documentoCliente: confirmaPagoQrDto.documentoCliente
+      }
+      await this.notificationsGateway.sendNotification('notification', { alias:confirmaPagoQrDto.alias,datosPago:datosPago, mensaje: 'PAGO REALIZADO' });
 
 
     } catch (error) {
-      throw new HttpException(error.response.data.data, HttpStatus.NOT_FOUND);
+      throw new HttpException(error.message || 'Error interno del servidor', HttpStatus.NOT_FOUND);
     }
+  }
+  async datosDeudasPagadoByAlias(alias: String) {
+    let deudasPagado = await this.cotelDatosConfirmadoQrRepository.deudasByAliasPagado(alias);
+    let detallePago = [];
+    for (const det of deudasPagado) {
+      detallePago.push({
+        mensajeDeuda: det.mensaje_deuda,
+        periodo: det.periodo,
+        monto: det.monto
+      })
+    }
+
+    let datosDeuda = {
+      nroRecibo: alias,
+      nombreCliente: deudasPagado[0].nombre_factura,
+      fechaPago: deudasPagado[0].fecha_registro,
+      metodoPago: 'QR',
+      totalPagado: deudasPagado[0].monto_sip,
+      detalle: detallePago
+    }
+    return datosDeuda;
   }
 }

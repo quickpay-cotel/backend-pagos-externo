@@ -1,41 +1,39 @@
 import {
   WebSocketGateway,
   WebSocketServer,
-  OnGatewayInit,
+  SubscribeMessage,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from "@nestjs/websockets";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 import { Logger } from "@nestjs/common";
 
-@WebSocketGateway({
-  cors: {
-    origin: "*", // Cambia según tus necesidades (por ejemplo, tu frontend)
-  },
-})
+@WebSocketGateway({ cors: { origin: "*" } }) // Comparte el puerto con HTTP
 export class NotificationsGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect
 {
-  @WebSocketServer() server: Server; // Instancia del servidor Socket.IO
+  @WebSocketServer() server: Server;
   private logger: Logger = new Logger("NotificationsGateway");
 
-  // Inicialización del Gateway
-  afterInit(server: Server) {
-    this.logger.log("WebSocket Gateway Initialized");
-  }
-
-  // Manejar nuevas conexiones de clientes
-  handleConnection(client: Socket) {
+  handleConnection(client: any) {
     this.logger.log(`Cliente conectado: ${client.id}`);
   }
 
-  // Manejar desconexiones de clientes
-  handleDisconnect(client: Socket) {
+  handleDisconnect(client: any) {
     this.logger.log(`Cliente desconectado: ${client.id}`);
   }
 
-  // Emitir una notificación a todos los clientes conectados
-  sendNotificationToAll(message: string) {
-    this.server.emit("notification", { message });
+  // Escuchar los Eventos Personalizados, cuando el liente envia sms con  custom_event
+  @SubscribeMessage("custom_event")
+  handleCustomEvent(@MessageBody() data: any): string {
+    this.logger.log(`Mensaje recibido: ${JSON.stringify(data)}`);
+    return `Servidor recibió: ${data.message}`;
+  }
+
+  // Método para enviar notificaciones desde otros servicios
+  sendNotification(event: string, payload: any) {
+    this.server.emit(event, payload); // Emitir evento a todos los clientes
+    this.logger.log(`Notificación emitida: ${event} - ${JSON.stringify(payload)}`);
   }
 }

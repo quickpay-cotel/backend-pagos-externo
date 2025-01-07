@@ -22,8 +22,11 @@ async function bootstrap() {
   //const app = await NestFactory.create(AppModule);
 
   app.useGlobalInterceptors(new ResponseInterceptor());
-  // Habilitar CORS de manera predeterminada
-  app.enableCors();
+
+    // Habilitar CORS si es necesario
+    app.enableCors({
+      origin: '*', // Asegúrate de permitir los orígenes correctos según tus necesidades
+    });
 
   // Habilitar validación global para los DTOs
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
@@ -32,5 +35,6 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   await app.listen(process.env.PORT);
+
 }
 bootstrap();

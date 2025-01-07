@@ -12,6 +12,7 @@ import { NotificationsGateway } from "src/notificaciones/notifications.gateway";
   controllers: [CotelController],
   providers: [
     NotificationsGateway,
-    CotelService]
+    CotelService],
+    exports:[CotelService]
 })
 export class CotelModule { }

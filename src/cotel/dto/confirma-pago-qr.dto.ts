@@ -17,7 +17,7 @@ export class ConfirmaPagoQrDto {
   @IsString()
   moneda: string;
 
-  @IsDateString()
+  @IsString()
   fechaproceso: string;
 
   @IsString()
