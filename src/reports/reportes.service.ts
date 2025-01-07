@@ -35,7 +35,14 @@ export class ReportesService {
         totalPagado: `${parseInt(receiptData.totalPagado).toFixed(2)}`
       });
       // Generar PDF con Puppeteer
-      const browser = await puppeteer.launch();
+      //const browser = await puppeteer.launch();
+
+      // modo ROOT  no es recomendable, pero pide el almalinux
+      const browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+
+      
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: 'load' });
       const pdfBuffer = Buffer.from(await page.pdf({ format: 'A4' }));
