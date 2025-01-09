@@ -27,7 +27,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let responseBody;
 
     // Modificar la respuesta en función del endpoint
-    if (endpoint === "/pagos/confirma-pago") {
+    if (endpoint === "/pagos/confirma-pago-qr") {
       responseBody = {
         codigo: "9999",
         mensaje: "Algo salio mal , comuniquese con sistemas de QUICKPAY",
