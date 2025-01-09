@@ -24,6 +24,8 @@ async function bootstrap() {
     httpsOptions,
   });
 
+
+
   //const app = await NestFactory.create(AppModule);
 
   app.useGlobalInterceptors(new ResponseInterceptor());

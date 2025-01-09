@@ -27,10 +27,10 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
         const request = context.switchToHttp().getRequest();
         const endpoint = request.route.path; // Obtienes el endpoint solicitado
 
-        if (endpoint === "/pagos/confirma-pago") {
+        if (endpoint === "/pagos/confirma-pago-qr") {
           return {
             codigo: "0000",
-            mensaje: "Recepcion de pago exitoso",
+            mensaje: "Registro Exitoso",
           };
         } else {
           // Respuesta por defecto para otros endpoints

@@ -32,8 +32,4 @@ export class CotelController {
   async liberarReserva(@Param("transaccionId") pTransaccionId: string) {
     return await this.cotelService.liberarReserva(pTransaccionId);
   }
-  @Post("confirma-pago-qr")
-  async confirmaPagoQr(@Body() confirmaPagoQrDto: ConfirmaPagoQrDto) {
-    return await this.cotelService.confirmaPagoQr(confirmaPagoQrDto);
-  }
 }

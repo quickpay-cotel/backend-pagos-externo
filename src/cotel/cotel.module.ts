@@ -1,6 +1,7 @@
 
 import { Module } from "@nestjs/common";
 import { CotelController } from "./cotel.controller";
+import { PagosController } from "./pagos.controller";
 import { CotelService } from "./cotel.service";
 import { DatabaseModule } from "../config/database.module"; // Importamos DatabaseModule
 import { CorreoModule } from "src/correo/correo.module";
@@ -9,7 +10,7 @@ import { ExternalServiceModule } from "src/common/external-services/external-ser
 import { NotificationsGateway } from "src/notificaciones/notifications.gateway";
 @Module({
   imports: [CorreoModule, DatabaseModule, RepositoryModule, ExternalServiceModule],
-  controllers: [CotelController],
+  controllers: [CotelController,PagosController],
   providers: [
     NotificationsGateway,
     CotelService],

@@ -50,6 +50,7 @@ export class CotelService {
         return null;
       }
     } catch (error) {
+      console.log(error);
       throw new HttpException(error.response.data.data, HttpStatus.NOT_FOUND);
     }
   }
@@ -66,6 +67,7 @@ export class CotelService {
         return null;
       }
     } catch (error) {
+      console.log(error);
       return error;
     }
   }
@@ -207,6 +209,7 @@ export class CotelService {
         };
       });
     } catch (error) {
+      console.log(error);
       if (idTransaccion) {
         await this.liberarReserva(idTransaccion);
       }
@@ -220,6 +223,7 @@ export class CotelService {
       await this.cotelReservaDeudaRepository.cambiarEstadoReservaByIdTransaccion(pTransaccionId, 1008);
       return resp;
     } catch (error) {
+      console.log(error);
       throw new HttpException(error.response.data.data, HttpStatus.NOT_FOUND);
     }
   }
@@ -310,6 +314,7 @@ export class CotelService {
 
 
     } catch (error) {
+      console.log(error);
       throw new HttpException(error.message || 'Error interno del servidor', HttpStatus.NOT_FOUND);
     }
   }

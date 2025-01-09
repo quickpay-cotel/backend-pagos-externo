@@ -35,5 +35,6 @@ export class NotificationsGateway
   sendNotification(event: string, payload: any) {
     this.server.emit(event, payload); // Emitir evento a todos los clientes
     this.logger.log(`Notificación emitida: ${event} - ${JSON.stringify(payload)}`);
+    console.log(" Notificar websoket : ",payload);
   }
 }
