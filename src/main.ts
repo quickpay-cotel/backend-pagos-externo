@@ -8,25 +8,17 @@ import * as fs from "fs";
 dotenv.config(); // Carga las variables de entorno
 async function bootstrap() {
   /*const httpsOptions = {
-    key: fs.readFileSync(
-      "/home/quickpay/public_html/PRD/SSL/quickpay_com_bo.key",
-    ),
-    cert: fs.readFileSync(
-      "/home/quickpay/public_html/PRD/SSL/quickpay_com_bo.crt",
-    ),
-  };*/
-  const httpsOptions = {
     key: fs.readFileSync('/etc/ssl/quickpay.com.bo/private.key'),
     cert: fs.readFileSync('/etc/ssl/quickpay.com.bo/certificate.crt'),
     ca: fs.readFileSync('/etc/ssl/quickpay.com.bo/ca_bundle.crt'), // Si tienes un certificado intermedio
   };
   const app = await NestFactory.create(AppModule, {
     httpsOptions,
-  });
+  });*/
 
 
 
-  //const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule);
 
   app.useGlobalInterceptors(new ResponseInterceptor());
 

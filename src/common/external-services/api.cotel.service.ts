@@ -58,6 +58,8 @@ export class ApiCotelService {
             return error;
         }
     }
+
+    // Libera Reserva
     async liberarReserva(pTransaccionId: string) {
         try {
             const response = await this.axiosInstance.post("/liberarDeuda", {
@@ -86,4 +88,5 @@ export class ApiCotelService {
             return error;
         }
     }
+
 }

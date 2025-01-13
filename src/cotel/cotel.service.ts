@@ -270,7 +270,7 @@ export class CotelService {
         });
 
         deudasReservados = await this.cotelReservaDeudaRepository.findByQrGeneradoId(qrGenerado.qr_generado_id);
-        if (deudasReservados.length == 0) throw new Error("No existe deudas reservados");
+        if (!deudasReservados || deudasReservados.length == 0) throw new Error("No existe deudas reservadas");
 
         // cambair estado de deudas reservados a PAGADO
         for (const deudaReservado of deudasReservados) {
@@ -279,28 +279,33 @@ export class CotelService {
 
       });
 
-      let requestParaConfirmarCotel = {
-        idTransaccion: deudasReservados[0].id_transaccion,
-        eMail: "alvaroquispesegales@gmail.com",
-        transaccionWeb: confirmaPagoQrDto.idQr,
-        entidad: "QUICKPAY",
-        canalPago: "QR",
-        fechaPago: FuncionesFechas.formatDate(new Date(), 'dd/MM/yyyy'),
-        horaPago: FuncionesFechas.obtenerHoraActual(),
-        estadoFactura: "0",
-        Cuf: "",
-        CufD: "",
-        numeroFactura: "",
-        fechaEmision: "",
-        razonSocial: "",
-        tipoDocumento: "",
-        numeroDocumento: "",
-        complementoDocumento: "",
-        urlFactura: ""
-      };
-
-      let respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
-
+      // confirmacion pago a cotel
+      try {
+        let requestParaConfirmarCotel = {
+          idTransaccion: deudasReservados[0].id_transaccion,
+          eMail: "alvaroquispesegales@gmail.com",
+          transaccionWeb: confirmaPagoQrDto.idQr,
+          entidad: "QUICKPAY",
+          canalPago: "QR",
+          fechaPago: FuncionesFechas.formatDate(new Date(), 'dd/MM/yyyy'),
+          horaPago: FuncionesFechas.obtenerHoraActual(),
+          estadoFactura: "0",
+          Cuf: "",
+          CufD: "",
+          numeroFactura: "",
+          fechaEmision: "",
+          razonSocial: "",
+          tipoDocumento: "",
+          numeroDocumento: "",
+          complementoDocumento: "",
+          urlFactura: ""
+        };
+        let respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
+      } catch (error) {
+        console.log(error);
+      }
+      // ===================
+      
       // notificar al frontend 
       let datosPago = {
         nombreCliente: confirmaPagoQrDto.nombreCliente,
@@ -310,7 +315,7 @@ export class CotelService {
         fechaproceso: confirmaPagoQrDto.fechaproceso,
         documentoCliente: confirmaPagoQrDto.documentoCliente
       }
-      await this.notificationsGateway.sendNotification('notification', { alias:confirmaPagoQrDto.alias,datosPago:datosPago, mensaje: 'PAGO REALIZADO' });
+      await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, datosPago: datosPago, mensaje: 'PAGO REALIZADO' });
 
 
     } catch (error) {
@@ -338,5 +343,32 @@ export class CotelService {
       detalle: detallePago
     }
     return datosDeuda;
+  }
+  async estadoTransaccion(pAlias: any) {
+    try {
+      // verificar estado de la transaccion
+      let resp = await this.apiSipService.estadoTransaccion(pAlias.alias);
+      if (!resp) throw new Error("error al veriifcar estado transaccion");
+      if (resp.estadoActual!='PAGADO') throw new Error("El estado de  pago se encuentra "+resp.estadoActual);
+
+      // confirmar el pago
+      const confirmaPagoQrDto = new ConfirmaPagoQrDto();
+      confirmaPagoQrDto.alias = resp.alias;
+      confirmaPagoQrDto.numeroOrdenOriginante = resp.numeroOrdenOriginante;
+      confirmaPagoQrDto.monto = resp.monto;
+      confirmaPagoQrDto.idQr = resp.idQr;
+      confirmaPagoQrDto.moneda = resp.moneda;
+      confirmaPagoQrDto.fechaproceso = resp.fechaProcesamiento;
+      confirmaPagoQrDto.cuentaCliente = resp.cuentaCliente;
+      confirmaPagoQrDto.nombreCliente = resp.nombreCliente;
+      confirmaPagoQrDto.documentoCliente = resp.documentoCliente;
+
+      // realizar del pago
+      return this.confirmaPagoQr(confirmaPagoQrDto);
+
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(error, HttpStatus.NOT_FOUND);
+    }
   }
 }

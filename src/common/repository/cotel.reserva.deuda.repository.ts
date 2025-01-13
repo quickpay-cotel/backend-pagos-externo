@@ -60,7 +60,7 @@ export class CotelReservaDeudaRepository {
   async findByQrGeneradoId(pQrGeneradoId): Promise<any> {
     const query = `select * from cotel.reserva_deuda where estado_reserva_id  = 1004 and estado_id = 1000 and qr_generado_id = $1 and estado_id = 1000`;
     const params = [pQrGeneradoId];
-    const result = await this.db.many(query, params);
+    const result = await this.db.manyOrNone(query, params);
     return result;
   }
 }

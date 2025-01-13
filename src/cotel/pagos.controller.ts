@@ -10,8 +10,10 @@ export class PagosController {
   constructor(private readonly cotelService: CotelService) {}
   @Post("confirma-pago-qr")
   async confirmaPagoQr(@Body() confirmaPagoQrDto: ConfirmaPagoQrDto) {
-    console.log("confirmando pagooo");
-    console.log(confirmaPagoQrDto);
     return await this.cotelService.confirmaPagoQr(confirmaPagoQrDto);
+  }
+  @Post("estado-pago-qr")
+  async verificarPagoQr(@Body() alias: any) {
+    return await this.cotelService.estadoTransaccion(alias);
   }
 }

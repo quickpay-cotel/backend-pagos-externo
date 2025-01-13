@@ -54,4 +54,23 @@ export class ApiSipService {
       throw error;
     }
   }
+  async estadoTransaccion(pAlias: string) {
+    try {
+      await this.generarToken();
+      const response = await this.axiosInstance.post("/api/v1/estadoTransaccion", { alias: pAlias }, {
+        headers: {
+          apikeyServicio: process.env.SIP_APIKEYSERVICIO,
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      const codigo = response.data.codigo;
+      if (codigo == "0000") {
+        return response.data.objeto;
+      } else {
+        throw "Error al obtener el estado del QR";
+      }
+    } catch (error) {
+      throw "Error al obtener el estado del QR";
+    }
+  }
 }

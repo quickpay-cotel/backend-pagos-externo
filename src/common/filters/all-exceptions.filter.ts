@@ -30,7 +30,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (endpoint === "/pagos/confirma-pago-qr") {
       responseBody = {
         codigo: "9999",
-        mensaje: "Algo salio mal , comuniquese con sistemas de QUICKPAY",
+        mensaje: message,
       };
     } else {
       responseBody = {
