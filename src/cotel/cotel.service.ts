@@ -123,7 +123,7 @@ export class CotelService {
           detalle_glosa: dataGeneraQr.detalleGlosa,
           monto: dataGeneraQr.monto,
           moneda: dataGeneraQr.moneda,
-          fecha_vencimiento: dataGeneraQr.fechaVencimiento,
+          //fecha_vencimiento: dataGeneraQr.fechaVencimiento,
           tipo_solicitud: dataGeneraQr.tipoSolicitud,
           unico_uso: dataGeneraQr.unicoUso,
           //imagen_qr_sip: datosQr.imagenQr,
