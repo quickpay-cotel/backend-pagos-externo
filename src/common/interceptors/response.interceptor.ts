@@ -10,7 +10,7 @@ import { map } from "rxjs/operators";
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest();
+    //const request = context.switchToHttp().getRequest();
     /*if (request.url === "/pagos/confirma-pago-qr") {
       return next.handle(); // No pasa por el interceptor
     }*/
@@ -21,8 +21,15 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
         timestamp: new Date().toISOString(),
       })),
     );*/
+
+    const response = context.switchToHttp().getResponse();
+
     return next.handle().pipe(
       map((data) => {
+
+        // Cambiar el código de estado a 200
+        response.status(200);
+
         // Modificar la respuesta dependiendo del endpoint
         const request = context.switchToHttp().getRequest();
         const endpoint = request.route.path; // Obtienes el endpoint solicitado
