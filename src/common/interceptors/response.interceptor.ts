@@ -11,9 +11,9 @@ import { map } from "rxjs/operators";
 export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    if (request.url === "/pagos/confirma-pago-qr") {
+    /*if (request.url === "/pagos/confirma-pago-qr") {
       return next.handle(); // No pasa por el interceptor
-    }
+    }*/
     /*return next.handle().pipe(
       map((data) => ({
         success: true,
