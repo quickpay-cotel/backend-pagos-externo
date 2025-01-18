@@ -3,17 +3,17 @@ import {
   Controller,
   Post,
 } from "@nestjs/common";
-import { CotelService } from "./cotel.service";
 import { ConfirmaPagoQrDto } from "./dto/confirma-pago-qr.dto";
+import { PagosService } from "./pagos.service";
 @Controller("pagos")
 export class PagosController {
-  constructor(private readonly cotelService: CotelService) {}
+  constructor(private readonly pagosService: PagosService) {}
   @Post("confirma-pago-qr")
   async confirmaPagoQr(@Body() confirmaPagoQrDto: ConfirmaPagoQrDto) {
-    return await this.cotelService.confirmaPagoQr(confirmaPagoQrDto);
+    return await this.pagosService.confirmaPagoQr(confirmaPagoQrDto);
   }
   @Post("estado-pago-qr")
   async verificarPagoQr(@Body() alias: any) {
-    return await this.cotelService.estadoTransaccion(alias);
+    return await this.pagosService.estadoTransaccion(alias);
   }
 }

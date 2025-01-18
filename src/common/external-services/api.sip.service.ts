@@ -9,7 +9,7 @@ export class ApiSipService {
     // Configuración de Axios
     this.axiosInstance = axios.create({
       baseURL: process.env.SIP_API,
-      timeout: 10000,
+      timeout: 30000,
     });
   }
   // Método para realizar una petición POST

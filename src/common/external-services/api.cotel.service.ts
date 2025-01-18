@@ -9,7 +9,7 @@ export class ApiCotelService {
         // Configuración de Axios
         this.axiosInstance = axios.create({
             baseURL: process.env.COTEL_API,
-            timeout: 10000,
+            timeout: 30000,
         });
     }
     // Reservar deuda
