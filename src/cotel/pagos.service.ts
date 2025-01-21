@@ -1,3 +1,4 @@
+import { CotelDetalleDeudasRepository } from 'src/common/repository/cotel.detalle-deudas.repository';
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiSipService } from "../common/external-services/api.sip.service";
 import { ApiCotelService } from "../common/external-services/api.cotel.service";
@@ -16,12 +17,15 @@ import { CotelComprobanteReciboRepository } from "src/common/repository/cotel.co
 
 import * as fs from 'fs';
 import * as path from 'path';
+
 import * as puppeteer from 'puppeteer';
 
 import { CotelService } from "./cotel.service";
+import { CotelDeudasRepository } from "src/common/repository/cotel.deudas.repository";
 
 @Injectable()
 export class PagosService {
+
 
   //private storePath = path.join(process.cwd(), 'store'); // Ruta de la carpeta 'store'
 
@@ -38,6 +42,8 @@ export class PagosService {
     private readonly cotelComprobanteFacturaRepository: CotelComprobanteFacturaRepository,
     private readonly cotelComprobanteReciboRepository: CotelComprobanteReciboRepository,
     private readonly notificationsGateway: NotificationsGateway,
+    private readonly cotelDeudasRepository: CotelDeudasRepository,
+    private readonly cotelDetalleDeudasRepository: CotelDetalleDeudasRepository,
     private readonly cotelService: CotelService,
     @Inject("DB_CONNECTION") private db: IDatabase<any>,) {
 
@@ -71,6 +77,7 @@ export class PagosService {
   }
   async confirmaPagoQr(confirmaPagoQrDto: ConfirmaPagoQrDto) {
     try {
+      // PASO 1  RECIBIR LA CONFIRMACION DE PAGO
       // verificamos datos qr generado en nuestro sistema
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(confirmaPagoQrDto.alias);
       if (!qrGenerado) throw new Error("QR no generado por QUICKPAY");
@@ -83,9 +90,9 @@ export class PagosService {
 
       let deudasReservados = [];
       let insertTransaccion: any;
-      // registrar en BD 
-      await this.db.tx(async (t) => {
 
+      // REGISTRAR EN BD LA CONFIRMACION DE PAGO
+      await this.db.tx(async (t) => {
         // registrar confirmacion de pago
         let insertConfirmQr = await this.cotelDatosConfirmadoQrRepository.create({
           qr_generado_id: qrGenerado.qr_generado_id,
@@ -101,7 +108,6 @@ export class PagosService {
           json_sip: confirmaPagoQrDto,
           estado_id: 1000
         });
-
         // registra transaccion realizado
         insertTransaccion = await this.cotelTransacionesRepository.create({
           datosconfirmado_qr_id: insertConfirmQr.datosconfirmado_qr_id,
@@ -111,138 +117,38 @@ export class PagosService {
           estado_transaccion_id: 1010,
           estado_id: 1000
         });
-
         deudasReservados = await this.cotelReservaDeudaRepository.findByQrGeneradoId(qrGenerado.qr_generado_id);
         if (!deudasReservados || deudasReservados.length == 0) throw new Error("No existe deudas reservadas");
-
         // cambair estado de deudas reservados a PAGADO
         for (const deudaReservado of deudasReservados) {
-          //await this.cotelReservaDeudaRepository.cambiarEstadoReservaByDeudaId(deudaReservado.deuda_id, 1005);
+          await this.cotelReservaDeudaRepository.cambiarEstadoReservaByDeudaId(deudaReservado.deuda_id, 1005);
         }
-
       });
+      // ============================
 
-      // generar factura
-      let requestFactura = {
-        identificador: "10a0e2fh-5ab7-4179-b20e-63911415e5b8",
-        tipoEnvioId: 38,
-        codigoDocumentoSector: 1,
-        codigoPuntoVenta: 0,
-        codigoSucursal: 0,
-        municipio: "La Paz",
-        telefono: "76703682",
-        numeroFactura: 1,
-        nombreRazonSocial: "PRUEBA DE NOMBRE GRANDE PARA COMRPAS Y VENTAS EN PRODUCCION S.R.L.",
-        codigoTipoDocumentoIdentidad: 1,
-        numeroDocumento: "6451258",
-        codigoCliente: "6451258",
-        correoElectronico: "illasoftbolivia@gmail.com",
-        codigoMetodoPago: 1,
-        codigoMoneda: 1,
-        tipoCambio: 1,
-        montoGiftCard: 0,
-        descuentoAdicional: 0,
-        codigoExcepcion: false,
-        usuario: "ISUAREZ",
-        details: [
-          {
-            empresaProductoId: 14837,
-            cantidad: 1,
-            precioUnitario: 1800,
-            montoDescuento: 2
-          },
-          {
-            empresaProductoId: 14838,
-            cantidad: 1,
-            precioUnitario: 2000,
-            montoDescuento: 4
-          }
-        ]
-      }
-      let resFact = await this.apiIllaService.generarFactura(requestFactura);
-      try {
-        // Decodificar el string Base64
-        const buffer = Buffer.from(resFact.pdf, 'base64');
-        // Ruta completa del archivo
-        const filePath = path.join(this.storePath + '/facturas', 'factura-'+confirmaPagoQrDto.alias + '.pdf');
-        // Guardar el archivo en la carpeta 'store'
-        fs.writeFileSync(filePath, buffer);
-      } catch (error) {
-        throw new Error(`Error al guardar el archivo: ${error.message}`);
-      }
-      try {
-        // Decodificar el string Base64
-        const buffer = Buffer.from(resFact.xml, 'base64');
-        // Ruta completa del archivo
-        const filePath = path.join(this.storePath + '/facturas', 'factura-'+confirmaPagoQrDto.alias + '.xml');
-        // Guardar el archivo en la carpeta 'store'
-        fs.writeFileSync(filePath, buffer);
-      } catch (error) {
-        throw new Error(`Error al guardar el archivo: ${error.message}`);
-      }
-      let resuFacturaCreado = await this.cotelComprobanteFacturaRepository.create({
-        identificador: resFact.identificador,
-        transaccion_id: insertTransaccion.transaccion_id,
-        ruta_xml: this.storePath + '/facturas' + '/' + 'factura-'+confirmaPagoQrDto.alias + '.xml',
-        ruta_pdf: this.storePath + '/facturas' + '/' + 'factura-'+confirmaPagoQrDto.alias + '.pdf',
-        leyenda: resFact.leyenda,
-        leyenda_emision: resFact.leyenda_emision,
-        cufd: resFact.cufd,
-        cuf: resFact.cuf,
-        fecha_emision: resFact.fecha_emision,
-        estado_id: 1000
-      });
+      //let deudas = this.cotelDeudasRepository.findByDeudaId(deudasReservados[0].deuda_id);
 
+      // GENERAR FACTURA por dada deuda siempre y cuando en el detalle diga factuar "S"
+      let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias);
 
-      // Generar contenido HTML dinámico
-      let datosDeuda = await this.cotelService.datosDeudasPagadoByAlias(confirmaPagoQrDto.alias);
-      const htmlContent = this.renderTemplate(this.plantillasPath + '/recibo.html', {
-        nroRecibo: datosDeuda.nroRecibo ?? 0,
-        nombreCliente: datosDeuda.nombreCliente ?? '',
-        fechaPago: datosDeuda.fechaPago ?? '',
-        metodoPago: datosDeuda.metodoPago ?? '',
-        tableRows: datosDeuda.detalle.map(item => `
-          <tr>
-            <td>${item.mensajeDeuda ?? ''}</td>
-            <td>${item.periodo ?? ''}</td>
-            <td>${parseInt(item.monto).toFixed(2)}</td>
-          </tr>
-        `).join(''),
-        totalPagado: `${parseInt(datosDeuda.totalPagado).toFixed(2)}`
-      });
-      // modo ROOT  no es recomendable, pero pide el almalinux
-      const browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
-      const page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: 'load' });
-      const pdfBuffer = Buffer.from(await page.pdf({ format: 'A4' }));
-      await browser.close();
-      // Guardar el buffer como un archivo PDF
-      fs.writeFileSync(this.storePath + '/recibos/' + 'recibo-'+confirmaPagoQrDto.alias + '.pdf', pdfBuffer);
+      // GENERAR RECIBOS
+      await this.generarRecibo(confirmaPagoQrDto.alias);
 
-      let resuReciboCreado = await this.cotelComprobanteReciboRepository.create({
-        identificador: 0,
-        transaccion_id: insertTransaccion.transaccion_id,
-        ruta_pdf: this.storePath + '/recibos/' + 'recibo-'+confirmaPagoQrDto.alias + '.pdf',
-        fecha_emision: new Date(),
-        estado_id: 1000
-      });
-      // confirmacion pago a cotel
+      // CONFIRMAR A COTEL
       try {
         let requestParaConfirmarCotel = {
-          idTransaccion: deudasReservados[0].id_transaccion,
+          identificador: deudasReservados[0].id_transaccion,
           eMail: "alvaroquispesegales@gmail.com",
           transaccionWeb: confirmaPagoQrDto.idQr,
-          entidad: "QUICKPAY",
+          entidad: "COTEL-QUICKPAY",
           canalPago: "QR",
           fechaPago: FuncionesFechas.formatDate(new Date(), 'dd/MM/yyyy'),
           horaPago: FuncionesFechas.obtenerHoraActual(),
-          estadoFactura: "0",
-          Cuf: "",
-          CufD: "",
-          numeroFactura: "",
-          fechaEmision: "",
+          estadoFactura: "0", //  hay q definir
+          CufD: resFact.cufd,
+          Cuf: resFact.cuf,
+          numeroFactura: "", // no retorna en proveeddore de factura
+          fechaEmision: resFact.fecha_emision,
           razonSocial: "",
           tipoDocumento: "",
           numeroDocumento: "",
@@ -255,7 +161,7 @@ export class PagosService {
       }
       // ===================
 
-      // notificar al frontend 
+      // NOTIFICAR AL FRONTEND
       let datosPago = {
         nombreCliente: confirmaPagoQrDto.nombreCliente,
         monto: confirmaPagoQrDto.monto,
@@ -264,6 +170,7 @@ export class PagosService {
         fechaproceso: confirmaPagoQrDto.fechaproceso,
         documentoCliente: confirmaPagoQrDto.documentoCliente
       }
+      datosPago.fechaproceso = this.formatearFechaProcesadoDeSIP(datosPago.fechaproceso);
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, datosPago: datosPago, mensaje: 'PAGO REALIZADO' });
 
 
@@ -274,7 +181,7 @@ export class PagosService {
     }
   }
 
-  
+
   async obtenerDatosFactura(pAlias: string) {
     try {
       return this.cotelComprobanteFacturaRepository.findByAlias(pAlias);
@@ -302,4 +209,180 @@ export class PagosService {
     return template;
   }
 
+  private formatearFechaProcesadoDeSIP(dateString: string) {
+    // Convertir la cadena en un objeto Date
+    const date = new Date(dateString);
+
+    // Obtener los componentes de la fecha
+    const day = String(date.getDate()).padStart(2, '0'); // Día con 2 dígitos
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Mes con 2 dígitos
+    const year = date.getFullYear(); // Año
+    const hours = String(date.getHours()).padStart(2, '0'); // Horas con 2 dígitos
+    const minutes = String(date.getMinutes()).padStart(2, '0'); // Minutos con 2 dígitos
+
+    // Formato final: dd/MM/yyyy HH:mm
+    const formattedDate = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+    return formattedDate;
+  }
+
+  private async generarFacturaILLA(vAlias: string): Promise<any> {
+
+    let deudas = await this.cotelDeudasRepository.findByAliasPagado(vAlias);
+    let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(vAlias);
+    for (var deuda of deudas) {
+
+      let tipoDoc = 0;
+      if (deuda.tipo_documento = 'CI') tipoDoc = 1;
+      if (deuda.tipo_documento = 'NIT') tipoDoc = 5;
+
+      let datosFactura = {
+        identificador: "10a0e2fh-5ab7-4179-b20e-63911415e5b8",
+        tipoEnvioId: 38,
+        codigoDocumentoSector: 1,
+        codigoPuntoVenta: 0,
+        codigoSucursal: 0,
+        municipio: "La Paz", // hay q definir
+        telefono: "78873940", // hay q definir
+        numeroFactura: 1, // debemos crear como empresa, pero podemos cordinar con el proveedor segun documenttacion
+        nombreRazonSocial: deuda.nombre_factura,
+        codigoTipoDocumentoIdentidad: tipoDoc,
+        numeroDocumento: deuda.numero_documento,
+        codigoCliente: deuda.codigo_deuda,
+        correoElectronico: qrGenerado.correo_para_comprobante, // correo del cliente
+        codigoMetodoPago: 1, // definir con Ricardo
+        codigoMoneda: 1,
+        tipoCambio: 1,
+        montoGiftCard: 0,
+        descuentoAdicional: 0,
+        codigoExcepcion: false, // si es falso se validara con SIN de lo contrario no, asi dice la documentacion
+        usuario: "QUICKPAY",
+        details: []
+      }
+
+      let detalleDeuda = await this.cotelDetalleDeudasRepository.findByDeudaId(deuda.deuda_id);
+      let lstDetalleDeuda = [];
+      for (var deudaDetalle of detalleDeuda) {
+        if (deudaDetalle.genera_factura == 'S') {
+          let detalleDeuda = {
+            //Identificador de un producto registrado en Illasoft, este valor es obtenido al
+            //momento de registrar los productos de la empresa en el recurso customers, el
+            //mismo es detallado más adelante.
+            empresaProductoId: 14837,
+            //empresaProductoId: deudaDetalle.detalle_deuda_id,
+            cantidad: deudaDetalle.cantidad,
+            precioUnitario: parseInt(deudaDetalle.monto_unitario),
+            montoDescuento: 0
+          }
+          lstDetalleDeuda.push(detalleDeuda);
+        }
+      }
+      datosFactura.details = lstDetalleDeuda;
+      if (lstDetalleDeuda.length > 0) {
+
+        // GGENERAR FACTURA
+        let resFact = await this.apiIllaService.generarFactura(datosFactura);
+
+        // ALMACENAR XML Y PDF
+        const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + deuda.deuda_id + '-' + vAlias + '.pdf');
+        const filePathXml = path.join(this.storePath + '/facturas', 'factura-' + deuda.deuda_id + '-' + vAlias + '.xml');
+        try {
+          // Decodificar el string Base64
+          const buffer = Buffer.from(resFact.pdf, 'base64');
+          // Guardar el archivo en la carpeta 'store'
+          fs.writeFileSync(filePathPdf, buffer);
+        } catch (error) {
+          throw new Error(`Error al guardar el archivo: ${error.message}`);
+        }
+        try {
+          // Decodificar el string Base64
+          const buffer = Buffer.from(resFact.xml, 'base64');
+          // Guardar el archivo en la carpeta 'store'
+          fs.writeFileSync(filePathXml, buffer);
+        } catch (error) {
+          throw new Error(`Error al guardar el archivo: ${error.message}`);
+        }
+        let transaccion = await this.cotelTransacionesRepository.findByAlias(vAlias);
+
+        // REGISTRA FACTURA
+        await this.cotelComprobanteFacturaRepository.create({
+          identificador: resFact.identificador,
+          transaccion_id: transaccion[0].transaccion_id,
+          deuda_id: deuda.deuda_id,
+          ruta_xml: filePathXml,
+          ruta_pdf: filePathPdf,
+          leyenda: resFact.leyenda,
+          leyenda_emision: resFact.leyenda_emision,
+          cufd: resFact.cufd,
+          cuf: resFact.cuf,
+          fecha_emision: resFact.fecha_emision,
+          estado_id: 1000
+        });
+        return resFact;
+      } else {
+        return null;
+      }
+    }
+  }
+  private async generarRecibo(vAlias: string): Promise<any> {
+
+    // Generar contenido HTML dinámico para RECIBO
+    let transaccion = await this.cotelTransacionesRepository.findByAlias(vAlias);
+    let datosDeuda = await this.cotelService.datosDeudasPagadoByAlias(vAlias);
+    if (datosDeuda.detalle.length > 0) {
+
+      const htmlContent = this.renderTemplate(this.plantillasPath + '/recibo.html', {
+        nroRecibo: datosDeuda.nroRecibo ?? 0,
+        nombreCliente: datosDeuda.nombreCliente ?? '',
+        fechaPago: datosDeuda.fechaPago ?? '',
+        metodoPago: datosDeuda.metodoPago ?? '',
+        tableRows: datosDeuda.detalle.map(item => `
+       <tr>
+         <td>${item.mensajeDeuda ?? ''}</td>
+         <td>${item.periodo ?? ''}</td>
+         <td>${parseInt(item.monto).toFixed(2)}</td>
+       </tr>
+     `).join(''),
+        totalPagado: `${parseInt(datosDeuda.totalPagado).toFixed(2)}`
+      });
+      // modo ROOT  no es recomendable, pero pide el almalinux
+      const browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'load' });
+      const pdfBuffer = Buffer.from(await page.pdf({ format: 'A4' }));
+      await browser.close();
+      // Guardar el buffer como un archivo PDF
+      fs.writeFileSync(this.storePath + '/recibos/' + 'recibo-' + vAlias + '.pdf', pdfBuffer);
+      await this.cotelComprobanteReciboRepository.create({
+        identificador: 0,
+        transaccion_id: transaccion[0].transaccion_id,
+        ruta_pdf: this.storePath + '/recibos/' + 'recibo-' + vAlias + '.pdf',
+        fecha_emision: new Date(),
+        estado_id: 1000
+      });
+    }
+  }
+
+   async obtenerComprobantes(pAlias: string) {
+    let nombres = [];
+    try {
+      // verificar estado de la transaccion
+      let recibos = await this.cotelComprobanteReciboRepository.findByAlias(pAlias);
+      for (var factura of recibos) {
+        nombres.push(path.parse(factura.ruta_pdf).name)
+      }
+      let facturas = await this.cotelComprobanteFacturaRepository.findByAlias(pAlias);
+      for (var recibo of facturas) {
+        nombres.push(path.parse(recibo.ruta_pdf).name)
+      }
+      return nombres;
+
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(error, HttpStatus.NOT_FOUND);
+    }
+  }
 }
+

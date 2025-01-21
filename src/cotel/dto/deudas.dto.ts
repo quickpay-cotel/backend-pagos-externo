@@ -12,6 +12,10 @@ export class DeudasDto {
   @IsString()
   transaccionReservado?: string;
 
+  @IsOptional()
+  @IsString()
+  correoParaComprobante?: string;
+
   @IsArray()
   @IsString({ each: true }) // Valida que cada elemento en el array sea un string
   @ArrayNotEmpty() // Opcional: Asegura que el array no esté vacío

@@ -29,4 +29,22 @@ export class CotelDeudasRepository {
     const result = await this.db.one(query, params);
     return result;
   }
+  async findByAlias(pAlias): Promise<any> {
+    const query = `  select d.* from cotel.reserva_deuda rd 
+inner join cotel.qr_generado qg on qg.estado_id = 1000
+inner join cotel.deudas d on d.deuda_id  = rd.deuda_id and d.estado_id = 1000
+where qg.alias = $1 and rd.estado_id = 1000 and rd.estado_reserva_id = 1004`;
+    const params = [pAlias];
+    const result = await this.db.many(query, params);
+    return result;
+  }
+  async findByAliasPagado(pAlias): Promise<any> {
+    const query = `  select d.* from cotel.reserva_deuda rd 
+inner join cotel.qr_generado qg on qg.estado_id = 1000
+inner join cotel.deudas d on d.deuda_id  = rd.deuda_id and d.estado_id = 1000
+where qg.alias = $1 and rd.estado_id = 1000 and rd.estado_reserva_id = 1005`;
+    const params = [pAlias];
+    const result = await this.db.many(query, params);
+    return result;
+  }
 }

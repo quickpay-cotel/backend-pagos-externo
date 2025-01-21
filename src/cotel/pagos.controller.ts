@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  Get,
+  Param,
   Post,
 } from "@nestjs/common";
 import { ConfirmaPagoQrDto } from "./dto/confirma-pago-qr.dto";
@@ -15,5 +17,9 @@ export class PagosController {
   @Post("estado-pago-qr")
   async verificarPagoQr(@Body() alias: any) {
     return await this.pagosService.estadoTransaccion(alias);
+  }
+  @Get("obtener-comprobantes/:alias")
+  async liberarReserva(@Param("alias") pAlias: string) {
+    return await this.pagosService.obtenerComprobantes(pAlias);
   }
 }

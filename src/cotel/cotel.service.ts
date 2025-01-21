@@ -17,9 +17,15 @@ import { ConfirmaPagoQrDto } from "./dto/confirma-pago-qr.dto";
 import { NotificationsGateway } from "src/notificaciones/notifications.gateway";
 import { CotelDatosConfirmadoQrRepository } from "src/common/repository/cotel.datosconfirmado_qr.repository";
 import { CotelTransacionesRepository } from "src/common/repository/cotel.transacciones.repository";
+
+import * as fs from 'fs';
+import * as path from 'path';
+import * as puppeteer from 'puppeteer';
+
 @Injectable()
 export class CotelService {
   private readonly axiosInstance: AxiosInstance;
+  private storePath = path.posix.join(process.cwd(), 'store');
   constructor(
     private readonly apiSipService: ApiSipService,
     private readonly apiCotelService: ApiCotelService,
@@ -75,19 +81,19 @@ export class CotelService {
     let idTransaccion = '';
     try {
 
-      // verificar si tiene transaccion reservadp
+      // verificar si tiene transaccion reservadp api COTEL
       if (deudasDto.transaccionReservado) {
         await this.liberarReserva(deudasDto.transaccionReservado);
       }
 
-      // obtener datos del contrato o telefono
+      // obtener datos del contrato o telefono api COTEL
       let datosCliente = await this.apiCotelService.consultaDatosCliente(deudasDto.consultaDatosClienteDto);
       if (!datosCliente) throw new Error("error al obtener datos cliente");
 
-      // consulta deudas 
+      // consulta deudas api COTEL
       let deudasCliente = await this.apiCotelService.consultaDeudaCliente(datosCliente.contratoId, datosCliente.id_servicio);
 
-      // Filtrar deudas seleccionados
+      // Filtrar deudas seleccionados 
       const deudasSeleccionados = deudasCliente.filter(deudaTodos =>
         deudasDto.codigoDeudas.some(deudaSeleccionado => deudaTodos.codigo_deuda === deudaSeleccionado)
       );
@@ -110,12 +116,14 @@ export class CotelService {
         tipoSolicitud: "API",
         unicoUso: "true",
       };
-      const datosQr = await this.apiSipService.generaQr(dataGeneraQr); // se sugiere q ese guarde la imagen QR tambien
+      const datosQr = await this.apiSipService.generaQr(dataGeneraQr);
       if (!datosQr.imagenQr) throw new Error("error al generar QR");
 
-      // registrar en BD 
-      return await this.db.tx(async (t) => {
+      // almacenar  QR en archivo
+      await this.almacenarQR(datosQr.imagenQr, dataGeneraQr.alias);
 
+      // registrar en BD  TRANSACTIONAL
+      return await this.db.tx(async (t) => {
         // registrar QR generado
         const qrGenerado = await this.cotelQrGeneradoRepository.create({
           alias: dataGeneraQr.alias,
@@ -123,16 +131,16 @@ export class CotelService {
           detalle_glosa: dataGeneraQr.detalleGlosa,
           monto: dataGeneraQr.monto,
           moneda: dataGeneraQr.moneda,
-          //fecha_vencimiento: dataGeneraQr.fechaVencimiento,
           tipo_solicitud: dataGeneraQr.tipoSolicitud,
           unico_uso: dataGeneraQr.unicoUso,
-          //imagen_qr_sip: datosQr.imagenQr,
+          ruta_qr: this.storePath + '/qr/' + 'qr-' + dataGeneraQr.alias + '.jpg',
           id_qr_sip: datosQr.idQr,
           fecha_vencimiento_sip: datosQr.fechaVencimiento,
           banco_destino_sip: datosQr.bancoDestino,
           cuenta_destino_sip: datosQr.cuentaDestino,
           id_transaccion_sip: datosQr.idTransaccion,
           es_imagen_sip: datosQr.esImagen,
+          correo_para_comprobante:deudasDto.correoParaComprobante,
           estado_id: 1000
         }, t)
         if (!qrGenerado) throw new Error("nose pudo registrar QR");
@@ -177,7 +185,7 @@ export class CotelService {
           for (var detalleDeuda of deudaSeleccionado.detalle) {
             await this.cotelDetalleDeudasRepository.create(
               {
-                deudas_id: deuda.deuda_id,
+                deuda_id: deuda.deuda_id,
                 secuencia: detalleDeuda.secuencia,
                 codigo_item: detalleDeuda.codigo_item,
                 descripcion_item: detalleDeuda.descripcion_item,
@@ -192,7 +200,7 @@ export class CotelService {
           }
 
           // reserva deuda
-          const reservaDeuda = await this.cotelReservaDeudaRepository.create({
+           await this.cotelReservaDeudaRepository.create({
             deuda_id: deuda.deuda_id,
             qr_generado_id: qrGenerado.qr_generado_id,
             id_transaccion: idTransaccion,
@@ -209,7 +217,7 @@ export class CotelService {
         };
       });
     } catch (error) {
-      console.log(error);
+      console.log("metodo: generaQr ",error);
       if (idTransaccion) {
         await this.liberarReserva(idTransaccion);
       }
@@ -219,7 +227,7 @@ export class CotelService {
   async liberarReserva(pTransaccionId: string) {
     try {
       let resp = await this.apiCotelService.liberarReserva(pTransaccionId);
-      if (!resp) throw new Error("error al obtener datos cliente");
+      if (!resp) throw new Error("error al liberar Reserva Pago");
       await this.cotelReservaDeudaRepository.cambiarEstadoReservaByIdTransaccion(pTransaccionId, 1008);
       return resp;
     } catch (error) {
@@ -248,5 +256,17 @@ export class CotelService {
     }
     return datosDeuda;
   }
-  
+
+  async almacenarQR(imgQRBase64, alias) {
+    try {
+      // Decodificar el string Base64
+      const buffer = Buffer.from(imgQRBase64, 'base64');
+      // Ruta completa del archivo
+      const filePath = path.join(this.storePath + '/qr', 'qr-' + alias + '.jpg');
+      // Guardar el archivo en la carpeta 'store'
+      fs.writeFileSync(filePath, buffer);
+    } catch (error) {
+      throw new Error(`Error al guardar el QR: ${error.message}`);
+    }
+  }
 }

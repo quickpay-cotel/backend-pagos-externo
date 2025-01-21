@@ -32,6 +32,8 @@ export class ApiIllaService {
     }
     
   async generarFactura(body: any) {
+    console.log("deudaaa");
+    console.log(body);
     try {
       await this.generarToken();
       const response = await this.axiosInstance.post("/api/v1/bills/buyandsell", body, {

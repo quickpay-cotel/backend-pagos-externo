@@ -63,4 +63,7 @@ export class CotelReservaDeudaRepository {
     const result = await this.db.manyOrNone(query, params);
     return result;
   }
+
+
+
 }

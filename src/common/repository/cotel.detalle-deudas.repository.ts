@@ -23,4 +23,10 @@ export class CotelDetalleDeudasRepository {
       : await this.db.one(query, params);
     return result;
   }
+  async findByDeudaId(pDeudaId): Promise<any> {
+    const query = `select * from cotel.detalles_deudas where deuda_id  = $1 and estado_id = 1000`;
+    const params = [pDeudaId];
+    const result = await this.db.manyOrNone(query, params);
+    return result;
+  }
 }

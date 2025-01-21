@@ -23,4 +23,13 @@ export class CotelTransacionesRepository {
       : await this.db.one(query, params);
     return result;
   }
+  async findByAlias(pAlias): Promise<any> {
+    const query = `  select t.* from cotel.datosconfirmado_qr dc
+inner join cotel.transacciones t on dc.datosconfirmado_qr_id = t.datosconfirmado_qr_id  and t.estado_id = 1000
+where dc.estado_id = 1000 and dc.alias_sip = $1`;
+    const params = [pAlias];
+    const result = await this.db.manyOrNone(query, params);
+    return result;
+  }
+
 }
