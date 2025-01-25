@@ -77,21 +77,15 @@ export class PagosService {
   }
   async confirmaPagoQr(confirmaPagoQrDto: ConfirmaPagoQrDto) {
     try {
-      // PASO 1  RECIBIR LA CONFIRMACION DE PAGO
+      // REGISTRAR CONFIRMACIÓN DE PAGO
       // verificamos datos qr generado en nuestro sistema
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(confirmaPagoQrDto.alias);
       if (!qrGenerado) throw new Error("QR no generado por QUICKPAY");
-
       // verificar el monto
       if (qrGenerado.monto != confirmaPagoQrDto.monto) throw new Error("Monto no es igual al QR generado");
-
       // notificar al frontend 
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, mensaje: 'PROCESANDO PAGO' });
-
       let deudasReservados = [];
-      let insertTransaccion: any;
-
-      // REGISTRAR EN BD LA CONFIRMACION DE PAGO
       await this.db.tx(async (t) => {
         // registrar confirmacion de pago
         let insertConfirmQr = await this.cotelDatosConfirmadoQrRepository.create({
@@ -109,7 +103,7 @@ export class PagosService {
           estado_id: 1000
         });
         // registra transaccion realizado
-        insertTransaccion = await this.cotelTransacionesRepository.create({
+        await this.cotelTransacionesRepository.create({
           datosconfirmado_qr_id: insertConfirmQr.datosconfirmado_qr_id,
           metodo_pago_id: 1009,
           monto_pagado: confirmaPagoQrDto.monto,
@@ -126,18 +120,17 @@ export class PagosService {
       });
       // ============================
 
-      //let deudas = this.cotelDeudasRepository.findByDeudaId(deudasReservados[0].deuda_id);
-
-      // GENERAR FACTURA por dada deuda siempre y cuando en el detalle diga factuar "S"
+      // GENERAR FACTURA 
       let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias);
 
       // GENERAR RECIBOS
       await this.generarRecibo(confirmaPagoQrDto.alias);
 
       // CONFIRMAR A COTEL
+      let transaccion = await this.cotelTransacionesRepository.findByAlias(confirmaPagoQrDto.alias);
       try {
         let requestParaConfirmarCotel = {
-          identificador: deudasReservados[0].id_transaccion,
+          identificador: transaccion[0].id_transaccion,
           eMail: "alvaroquispesegales@gmail.com",
           transaccionWeb: confirmaPagoQrDto.idQr,
           entidad: "COTEL-QUICKPAY",
@@ -156,6 +149,8 @@ export class PagosService {
           urlFactura: ""
         };
         let respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
+        console.log("respuesta de COTE al confirmar el PAGO");
+        console.log(respCotel);
       } catch (error) {
         console.log(error);
       }
@@ -173,10 +168,8 @@ export class PagosService {
       datosPago.fechaproceso = this.formatearFechaProcesadoDeSIP(datosPago.fechaproceso);
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, datosPago: datosPago, mensaje: 'PAGO REALIZADO' });
 
-
     } catch (error) {
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, mensaje: 'PAGO NO SE HA REALIZADO' });
-      console.log(error);
       throw new HttpException(error.message || 'Error interno del servidor', HttpStatus.NOT_FOUND);
     }
   }
@@ -237,26 +230,151 @@ export class PagosService {
       if (deuda.tipo_documento = 'NIT') tipoDoc = 5;
 
       let datosFactura = {
-        identificador: "10a0e2fh-5ab7-4179-b20e-63911415e5b8",
-        tipoEnvioId: 38,
-        codigoDocumentoSector: 1,
-        codigoPuntoVenta: 0,
-        codigoSucursal: 0,
-        municipio: "La Paz", // hay q definir
-        telefono: "78873940", // hay q definir
-        numeroFactura: 1, // debemos crear como empresa, pero podemos cordinar con el proveedor segun documenttacion
-        nombreRazonSocial: deuda.nombre_factura,
-        codigoTipoDocumentoIdentidad: tipoDoc,
-        numeroDocumento: deuda.numero_documento,
-        codigoCliente: deuda.codigo_deuda,
-        correoElectronico: qrGenerado.correo_para_comprobante, // correo del cliente
-        codigoMetodoPago: 1, // definir con Ricardo
-        codigoMoneda: 1,
-        tipoCambio: 1,
-        montoGiftCard: 0,
-        descuentoAdicional: 0,
-        codigoExcepcion: false, // si es falso se validara con SIN de lo contrario no, asi dice la documentacion
-        usuario: "QUICKPAY",
+        /*Identificador de la sucursal o punto de venta en la que se realiza la emisión de la
+        factura. Si no se emite facturas desde un punto de venta entonces utilizará el
+        identificador y codigoSucursal de una de las sucursales, pero en codigoPuntoVenta
+        debe ser igual a cero 0.
+        Este identificador es obtenido al momento de registrar sucursales o puntos de venta,
+        la descripción de los endpoints puede verse en el recurso customers (es posible
+        consultar las sucursales y de ella obtener los identificadores requeridos).
+        Debe ser almacenado en su sistema para su uso en la emisión.*/
+        identificador: "10a0e2fh-5ab7-4179-b20e-63911415e5b8", //string
+
+        //Código del tipo de envío realizado: 38=Individual, 39=Paquete y 40=Masivo
+        tipoEnvioId: 38, //int
+
+        /*
+        Código del tipo de documento sector que será emitido.
+        1=FACTURA COMPRA VENTA
+        2=FACTURA COMPRA VENTA BONIFICACIONE
+        */
+        codigoDocumentoSector: 1, //int
+
+        /*
+        Código del punto de venta registrado en el SIN. Este valor es asignado por el SIAT cuando se realiza la creación de un punto de venta.
+        Este valor debe ser almacenado en su sistema para su uso en la emisión
+        */
+        codigoPuntoVenta: 0,//int
+
+        /*
+        Código de la sucursal desde al cual se emitirá una factura, este valor es exactamente el utilizado en el padrón de contribuyentes del SIN
+        */
+        codigoSucursal: 0, //int
+
+        /*      Texto que determina el lugar de emisión (municipio o departamento) de la factura. Algunos ejemplos:
+        - Santa Cruz
+        - Montero
+        - La Paz-Copacabana
+        Queda a criterio de la empresa, tomando en cuenta que este valor se imprime en la
+        representación gráfica, en la cabecera parte superior izquierda.
+      */
+        municipio: "La Paz", //string
+
+        /*
+        Número de teléfono que puede ser celular o número de teléfono de la empresa, sucursal o punto de venta. Algunos ejemplos:
+      - 591 72452154
+      - 70612345
+      - 22584983
+      - 33352645
+        Queda a criterio de la empresa, tomando en cuenta que este valor se imprime en la representación gráfica, en la cabecera parte superior izquierda
+        */
+        telefono: "78873940", //string
+
+        /*Número de factura con la cual se emitirá la factura, este valor es definido plenamente
+        por la empresa, sin embargo, puede contactarse con el equipo para realizar un
+        control sobre la secuencia de ser necesario*/
+        numeroFactura: 1, //int
+
+        /*Nombre o Razón Social de la empresa a la que se emite la factura*/
+        nombreRazonSocial: deuda.nombre_factura, //string
+
+        /*Código del tipo de Documento de Identidad del cliente beneficiario de la factura. Los
+        posibles valores son:
+        • 1=Cédula de Identidad (CI)
+        • 2=Cédula de Identidad Extranjero (CEX)
+        • 3=Pasaporte (PAS)
+        • 4=Otros Documentos (OD)
+        • 5=Número de Identificación Tributaria (NIT)*/
+        codigoTipoDocumentoIdentidad: tipoDoc, //int
+
+        //Número de documento de identidad del cliente beneficiario de la factura.
+        numeroDocumento: deuda.numero_documento,  //string
+
+        /*Código de cliente asociado al beneficiario de la factura. Este código debe ser creado
+        por el sistema de clientes de la empresa conforme normativa del SIN. Algunas
+        empresas prefieren mantener el mismo número de documento de identidad más el
+        complemento para el tema de duplicados. Es definición plena de la empresa*/
+        codigoCliente: deuda.numero_documento+deuda.complemento_documento, //string
+
+        /*Correo electrónico al cual se enviará la representación gráfica del documento fiscal y el archivo XML conforme normativa del SIN*/
+        correoElectronico: qrGenerado.correo_para_comprobante, //string
+
+        /*Código del método de pago utilizado en la transacción comercial. Los valores
+          comúnmente utilizados son:
+          • 1=EFECTIVO
+          • 2=TARJETA DEBITO/CREDITO
+          • 3=CHEQUE
+          • 4=VALE
+          • 5=OTROS
+          • 6=PAGOS POSTERIOR (CREDITO)
+          • 7=TRASNFERENCIA BANCARIA
+          • 8=DEPOSITO EN CUENTA
+          • 27=GIFTCARD
+          • 31=CANAL DE PAGO
+          • 32=BILLETERA MOVIL
+          • 33=PAGO ONLINE
+          Si se requiere combinaciones u otros métodos de pago favor contactarse con soporte
+          para que le entreguen el catálogo completo.
+        */
+        codigoMetodoPago: 1, //int
+        /*
+        Código de moneda en la que se realizó la transacción comercial. Los valores comunes son:
+          • 1=BOLIVIANO
+          • 2=DOLARES
+          • 7=EURO
+          • 9=PESO ARGENTINO
+          • 23=REAL BRASILEÑO
+          • 33=PESO CHILENO
+          • 35=PESO COLOMBIANO
+          • 109=NUEVO SOL PERUANO
+        Si se requiere otros códigos de moneda por favor contactarse con soporte para que
+        le entreguen el catálogo completo.
+        */
+        codigoMoneda: 1, //int
+        /*
+        Valor del tipo de cambio que debe ser aplicado cuando el código de moneda es
+        diferente a bolivianos. Cuando el código de Moneda es bolivianos entonces debe
+        enviarse el valor 1. Acepta hasta 2 decimales
+        */
+        tipoCambio: 1, //decimal 
+        /*Monto total o parcial de la transacción comercial que es pagada con GIFT-CARD. Se
+        debe tomar en cuenta que este valor será tomado solamente si el código método de
+        pago es GIFT CARD o alguna combinación que la involucre. Por defecto pueden
+        enviarse valor cero (0).*/
+        montoGiftCard: 0, //decimal 
+        /*
+        Monto de descuento global a la transacción comercial. Acepta hasta 2 decimales. Es
+        necesario considerar que este monto es independiente y no representa la suma de
+        los descuentos de cada ítem de la factura. Por defecto pueden enviarse valor cero
+        (0).
+        */
+        descuentoAdicional: 0, //decimal 
+        /*
+        Código que permite identificar si un NIT observado puede enviado al SIN como
+        declaración indicando que es el dato proporcionado por el cliente. Valores posibles
+        • True=Declaro que el NIT es lo que indicó y confirmó el cliente
+        • False=El NIT debe ser validado en la transacción de emisión
+        */
+        codigoExcepcion: false, //bool 
+        /*
+        Texto que permite identificar que usuario del sistema de la empresa que emitió el
+        documento fiscal. Ejemplos:
+        • USER01
+        • AGROTEXT001
+        • JUANPEREZ
+        • JPEREZ
+        */
+        usuario: "QUICKPAY", //string
         details: []
       }
 
@@ -265,60 +383,67 @@ export class PagosService {
       for (var deudaDetalle of detalleDeuda) {
         if (deudaDetalle.genera_factura == 'S') {
           let detalleDeuda = {
-            //Identificador de un producto registrado en Illasoft, este valor es obtenido al
-            //momento de registrar los productos de la empresa en el recurso customers, el
-            //mismo es detallado más adelante.
-            empresaProductoId: 14837,
-            //empresaProductoId: deudaDetalle.detalle_deuda_id,
-            cantidad: deudaDetalle.cantidad,
-            precioUnitario: parseInt(deudaDetalle.monto_unitario),
-            montoDescuento: 0
+            /*
+            Identificador de un producto registrado en Illasoft, este valor es obtenido al
+            momento de registrar los productos de la empresa en el recurso customers, el
+            mismo es detallado más adelante
+            */
+            empresaProductoId: 14837, //long
+            /*Valor numérico que determina la cantidad de productos o servicios que se
+            encuentran detallados en el ítem. Para la venta de productos sujetos a peso, puede
+            enviarse valores como: 1.25, 2.67
+            Para la venta de servicios el valor generalmente es 1*/
+          
+            cantidad: deudaDetalle.cantidad,//decimal
+            //Monto que representa el precio del producto o servicio. Acepta 2 decimales.
+            precioUnitario: parseInt(deudaDetalle.monto_unitario),//decimal
+            /*Monto que representa el descuento aplicado al producto o servicio vendido. Acepta
+            2 decimales. Se debe considerar que este valor no llega al Registro de Compras del
+            cliente dado que el SIN asume que este tipo de descuentos pueden considerarse
+            neteados*/
+            montoDescuento: 0 //decimal
           }
           lstDetalleDeuda.push(detalleDeuda);
         }
       }
       datosFactura.details = lstDetalleDeuda;
-      if (lstDetalleDeuda.length > 0) {
+      if (lstDetalleDeuda.length > 0) { 
 
         // GGENERAR FACTURA
-        let resFact = await this.apiIllaService.generarFactura(datosFactura);
+        let resFacturacion = await this.apiIllaService.generarFactura(datosFactura);
 
         // ALMACENAR XML Y PDF
         const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + deuda.deuda_id + '-' + vAlias + '.pdf');
         const filePathXml = path.join(this.storePath + '/facturas', 'factura-' + deuda.deuda_id + '-' + vAlias + '.xml');
         try {
           // Decodificar el string Base64
-          const buffer = Buffer.from(resFact.pdf, 'base64');
+          const bufferPdf = Buffer.from(resFacturacion.pdf, 'base64');
+          const bufferXml = Buffer.from(resFacturacion.xml, 'base64');
           // Guardar el archivo en la carpeta 'store'
-          fs.writeFileSync(filePathPdf, buffer);
+          fs.writeFileSync(filePathPdf, bufferPdf);
+          fs.writeFileSync(filePathXml, bufferXml);
+          console.log('Archivos (factura XML y PDF) almacenado exitosamente')
         } catch (error) {
-          throw new Error(`Error al guardar el archivo: ${error.message}`);
+          throw new Error(`Error al guardar el archivos (XML Y PDF): ${error.message}`);
         }
-        try {
-          // Decodificar el string Base64
-          const buffer = Buffer.from(resFact.xml, 'base64');
-          // Guardar el archivo en la carpeta 'store'
-          fs.writeFileSync(filePathXml, buffer);
-        } catch (error) {
-          throw new Error(`Error al guardar el archivo: ${error.message}`);
-        }
-        let transaccion = await this.cotelTransacionesRepository.findByAlias(vAlias);
-
+       
         // REGISTRA FACTURA
+        let transaccion = await this.cotelTransacionesRepository.findByAlias(vAlias);
         await this.cotelComprobanteFacturaRepository.create({
-          identificador: resFact.identificador,
+          identificador: resFacturacion.identificador,
           transaccion_id: transaccion[0].transaccion_id,
           deuda_id: deuda.deuda_id,
           ruta_xml: filePathXml,
           ruta_pdf: filePathPdf,
-          leyenda: resFact.leyenda,
-          leyenda_emision: resFact.leyenda_emision,
-          cufd: resFact.cufd,
-          cuf: resFact.cuf,
-          fecha_emision: resFact.fecha_emision,
+          leyenda: resFacturacion.leyenda,
+          leyenda_emision: resFacturacion.leyenda_emision,
+          cufd: resFacturacion.cufd,
+          cuf: resFacturacion.cuf,
+          fecha_emision: resFacturacion.fecha_emision,
           estado_id: 1000
         });
-        return resFact;
+
+        return resFacturacion;
       } else {
         return null;
       }
@@ -365,7 +490,7 @@ export class PagosService {
     }
   }
 
-   async obtenerComprobantes(pAlias: string) {
+  async obtenerComprobantes(pAlias: string) {
     let nombres = [];
     try {
       // verificar estado de la transaccion

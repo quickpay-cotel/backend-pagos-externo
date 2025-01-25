@@ -35,26 +35,14 @@ export class CotelService {
     private readonly cotelReservaDeudaRepository: CotelReservaDeudaRepository,
     private readonly cotelQrGeneradoRepository: CotelQrGeneradoRepository,
     private readonly cotelDatosConfirmadoQrRepository: CotelDatosConfirmadoQrRepository,
-    private readonly cotelTransacionesRepository: CotelTransacionesRepository,
-    private readonly notificationsGateway: NotificationsGateway,
     @Inject("DB_CONNECTION") private db: IDatabase<any>,) {
-    this.axiosInstance = axios.create({
-      baseURL: process.env.COTEL_API,
-      timeout: 10000,
-    });
+
   }
   async consultaDatosCliente(consultaDatosClienteRequestDto: ConsultaDatosClienteDto) {
     try {
-      const response = await this.axiosInstance.post(
-        "/consultar",
-        consultaDatosClienteRequestDto,
-      );
-      const codigo = response.data.status;
-      if (codigo == "OK") {
-        return response.data.data;
-      } else {
-        return null;
-      }
+        let datosCliente = await this.apiCotelService.consultaDatosCliente(consultaDatosClienteRequestDto);
+        if (!datosCliente) throw new Error("error al obtener datos cliente");
+        return datosCliente;
     } catch (error) {
       console.log(error);
       throw new HttpException(error.response.data.data, HttpStatus.NOT_FOUND);
@@ -62,16 +50,9 @@ export class CotelService {
   }
   async consultaDeudaCliente(consultaDeudasDto: ConsultaDeudasDto) {
     try {
-      const response = await this.axiosInstance.post("/consultarDeuda", {
-        contratoId: consultaDeudasDto.contratoId,
-        servicioId: consultaDeudasDto.servicioId,
-      });
-      const codigo = response.data.status;
-      if (codigo == "OK") {
-        return response.data.data;
-      } else {
-        return null;
-      }
+      let datosCliente = await this.apiCotelService.consultaDeudaCliente(consultaDeudasDto.contratoId,consultaDeudasDto.servicioId);
+      if (!datosCliente) throw new Error("error al obtener datos cliente");
+      return datosCliente;
     } catch (error) {
       console.log(error);
       return error;

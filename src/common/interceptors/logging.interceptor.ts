@@ -48,7 +48,7 @@ export class LoggingInterceptor implements NestInterceptor {
           }
           const statusCode = error?.status || 500;
           await this.pool.query(
-            ` INSERT INTO tesla.http_logs (method, endpoint, status_code, client_ip, request_params, request_body, response_body) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            ` INSERT INTO cotel.http_logs (method, endpoint, status_code, client_ip, request_params, request_body, response_body) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
             [
               method,
               url,

@@ -9,8 +9,9 @@ import { CorreoModule } from "src/correo/correo.module";
 import { RepositoryModule } from "src/common/repository/repository.module";
 import { ExternalServiceModule } from "src/common/external-services/external-service.module";
 import { NotificationsGateway } from "src/notificaciones/notifications.gateway";
+import { EmailModule } from "src/common/correos/email.module";
 @Module({
-  imports: [CorreoModule, DatabaseModule, RepositoryModule, ExternalServiceModule],
+  imports: [CorreoModule, DatabaseModule, RepositoryModule, ExternalServiceModule, EmailModule],
   controllers: [CotelController,PagosController],
   providers: [
     NotificationsGateway,
