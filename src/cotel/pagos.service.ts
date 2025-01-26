@@ -22,6 +22,7 @@ import * as puppeteer from 'puppeteer';
 
 import { CotelService } from "./cotel.service";
 import { CotelDeudasRepository } from "src/common/repository/cotel.deudas.repository";
+import { EmailService } from 'src/common/correos/email.service';
 
 @Injectable()
 export class PagosService {
@@ -45,6 +46,7 @@ export class PagosService {
     private readonly cotelDeudasRepository: CotelDeudasRepository,
     private readonly cotelDetalleDeudasRepository: CotelDetalleDeudasRepository,
     private readonly cotelService: CotelService,
+    private readonly emailService: EmailService,
     @Inject("DB_CONNECTION") private db: IDatabase<any>,) {
 
   }
@@ -81,13 +83,27 @@ export class PagosService {
       // verificamos datos qr generado en nuestro sistema
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(confirmaPagoQrDto.alias);
       if (!qrGenerado) throw new Error("QR no generado por QUICKPAY");
+
       // verificar el monto
       if (qrGenerado.monto != confirmaPagoQrDto.monto) throw new Error("Monto no es igual al QR generado");
+
       // notificar al frontend 
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, mensaje: 'PROCESANDO PAGO' });
+
+      // notificar por correo al cliente
+      let paymentData = {
+        nombreCliente: confirmaPagoQrDto.nombreCliente,
+        numeroTransaccion: confirmaPagoQrDto.alias,
+        monto: confirmaPagoQrDto.monto,
+        moneda: confirmaPagoQrDto.moneda,
+        fecha: confirmaPagoQrDto.fechaproceso,
+        nombreEmpresa: 'COTEL'
+      };
+      this.emailService.sendMailNotifyPayment(qrGenerado.correo_para_comprobante, 'confirmación de pago', paymentData);
+
+      // registrar confirmación en BD
       let deudasReservados = [];
       await this.db.tx(async (t) => {
-        // registrar confirmacion de pago
         let insertConfirmQr = await this.cotelDatosConfirmadoQrRepository.create({
           qr_generado_id: qrGenerado.qr_generado_id,
           alias_sip: confirmaPagoQrDto.alias,
@@ -138,8 +154,8 @@ export class PagosService {
           fechaPago: FuncionesFechas.formatDate(new Date(), 'dd/MM/yyyy'),
           horaPago: FuncionesFechas.obtenerHoraActual(),
           estadoFactura: "0", //  hay q definir
-          CufD: resFact.cufd,
-          Cuf: resFact.cuf,
+          CufD: resFact.cufd ?? '',
+          Cuf: resFact.cuf ?? '',
           numeroFactura: "", // no retorna en proveeddore de factura
           fechaEmision: resFact.fecha_emision,
           razonSocial: "",
@@ -167,6 +183,21 @@ export class PagosService {
       }
       datosPago.fechaproceso = this.formatearFechaProcesadoDeSIP(datosPago.fechaproceso);
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, datosPago: datosPago, mensaje: 'PAGO REALIZADO' });
+
+      //const facturaPath = path.join(this.storePath + '/facturas', 'factura-' + deuda.deuda_id + '-' + confirmaPagoQrDto.alias + '.pdf');
+      const reciboPath = path.join(this.storePath + '/recibos/' + 'recibo-' + confirmaPagoQrDto.alias + '.pdf');
+
+
+      // notificar por correo al cliente con las comprobantes de pago, facturas y recibos
+      let paymentDataConfirmado = {
+        nombreCliente: confirmaPagoQrDto.nombreCliente,
+        numeroTransaccion: confirmaPagoQrDto.alias,
+        monto: confirmaPagoQrDto.monto,
+        moneda: confirmaPagoQrDto.moneda,
+        fecha: confirmaPagoQrDto.fechaproceso,
+        nombreEmpresa: 'COTEL'
+      };
+      this.emailService.sendMailNotifyPaymentAndAttachments(qrGenerado.correo_para_comprobante, 'confirmación de pago y comprobantes', paymentDataConfirmado,reciboPath);
 
     } catch (error) {
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, mensaje: 'PAGO NO SE HA REALIZADO' });
@@ -304,7 +335,7 @@ export class PagosService {
         por el sistema de clientes de la empresa conforme normativa del SIN. Algunas
         empresas prefieren mantener el mismo número de documento de identidad más el
         complemento para el tema de duplicados. Es definición plena de la empresa*/
-        codigoCliente: deuda.numero_documento+deuda.complemento_documento, //string
+        codigoCliente: deuda.numero_documento + deuda.complemento_documento, //string
 
         /*Correo electrónico al cual se enviará la representación gráfica del documento fiscal y el archivo XML conforme normativa del SIN*/
         correoElectronico: qrGenerado.correo_para_comprobante, //string
@@ -393,7 +424,7 @@ export class PagosService {
             encuentran detallados en el ítem. Para la venta de productos sujetos a peso, puede
             enviarse valores como: 1.25, 2.67
             Para la venta de servicios el valor generalmente es 1*/
-          
+
             cantidad: deudaDetalle.cantidad,//decimal
             //Monto que representa el precio del producto o servicio. Acepta 2 decimales.
             precioUnitario: parseInt(deudaDetalle.monto_unitario),//decimal
@@ -407,7 +438,7 @@ export class PagosService {
         }
       }
       datosFactura.details = lstDetalleDeuda;
-      if (lstDetalleDeuda.length > 0) { 
+      if (lstDetalleDeuda.length > 0) {
 
         // GGENERAR FACTURA
         let resFacturacion = await this.apiIllaService.generarFactura(datosFactura);
@@ -426,7 +457,7 @@ export class PagosService {
         } catch (error) {
           throw new Error(`Error al guardar el archivos (XML Y PDF): ${error.message}`);
         }
-       
+
         // REGISTRA FACTURA
         let transaccion = await this.cotelTransacionesRepository.findByAlias(vAlias);
         await this.cotelComprobanteFacturaRepository.create({
