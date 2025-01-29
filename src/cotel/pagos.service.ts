@@ -143,31 +143,34 @@ export class PagosService {
       await this.generarRecibo(confirmaPagoQrDto.alias);
 
       // CONFIRMAR A COTEL
-      let transaccion = await this.cotelTransacionesRepository.findByAlias(confirmaPagoQrDto.alias);
       try {
+        let deudas = await this.cotelDeudasRepository.findByAliasPagado(confirmaPagoQrDto.alias);
+        let resrevaDeuda = await this.cotelReservaDeudaRepository.findByAlias(confirmaPagoQrDto.alias);
+        let qrGenerado  = await this.cotelQrGeneradoRepository.findByAlias(confirmaPagoQrDto.alias);
         let requestParaConfirmarCotel = {
-          identificador: transaccion[0].id_transaccion,
-          eMail: "alvaroquispesegales@gmail.com",
-          transaccionWeb: confirmaPagoQrDto.idQr,
-          entidad: "COTEL-QUICKPAY",
-          canalPago: "QR",
-          fechaPago: FuncionesFechas.formatDate(new Date(), 'dd/MM/yyyy'),
-          horaPago: FuncionesFechas.obtenerHoraActual(),
-          estadoFactura: "0", //  hay q definir
-          CufD: resFact.cufd ?? '',
-          Cuf: resFact.cuf ?? '',
-          numeroFactura: "", // no retorna en proveeddore de factura
-          fechaEmision: resFact.fecha_emision,
-          razonSocial: "",
-          tipoDocumento: "",
-          numeroDocumento: "",
-          complementoDocumento: "",
-          urlFactura: ""
+          identificador: resrevaDeuda[0].id_transaccion,//Identificador de transacción del pago reservado
+          eMail: qrGenerado.correo_para_comprobante,// correo electrónico del cliente que realiza el pago
+          transaccionWeb: confirmaPagoQrDto.idQr,//Còdigo de transacción de la plataforma de pagos.
+          entidad: "COTEL-QUICKPAY", //descripción entidad que realiza el pago
+          canalPago: "QR", //descripción  del canal del pago (QR, WEB, etc.)
+          fechaPago: FuncionesFechas.formatDate(new Date(), 'dd/MM/yyyy'), //fecha del pago
+          horaPago: FuncionesFechas.obtenerHoraActual(), //fecha del pago
+          estadoFactura: resFact?"1":"0", //indicador de si se generó factura electrónica (0=No, 1=Si)
+          Cuf: resFact.cuf ?? '', // de si se generó factura electrónica (0=No, 1=Si)  o	cuf. 
+          CufD: resFact.cufd ?? '', //Código único de factura diaria
+          numeroFactura: "",  // : número de factura electrónica
+          fechaEmision: resFact.fechaEmision??'', // Fecha emisión de factura electrónica
+          razonSocial: "", // Razón social de la factura electrónica.
+          tipoDocumento: (deudas[0].tipo_documento == 'CI')?"1":"5", // Tipo de documento de la factura electrónica (1=CI, 5=NIT, 4=Otros documentos, 3=PAS, 2=CIX)
+          numeroDocumento: deudas[0].numero_documento, //Número de documento de la factura electrónica
+          complementoDocumento: deudas[0].complemento_documento, // complmento del nro de documento
+          urlFactura: "" //url de la factura electrónica en el SIAT o servidor del proveedor.
         };
         let respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
         console.log("respuesta de COTE al confirmar el PAGO");
         console.log(respCotel);
       } catch (error) {
+        
         console.log(error);
       }
       // ===================
@@ -467,10 +470,10 @@ export class PagosService {
           ruta_xml: filePathXml,
           ruta_pdf: filePathPdf,
           leyenda: resFacturacion.leyenda,
-          leyenda_emision: resFacturacion.leyenda_emision,
+          leyenda_emision: resFacturacion.leyendaEmision,
           cufd: resFacturacion.cufd,
           cuf: resFacturacion.cuf,
-          fecha_emision: resFacturacion.fecha_emision,
+          fecha_emision: resFacturacion.fechaEmision,
           estado_id: 1000
         });
 

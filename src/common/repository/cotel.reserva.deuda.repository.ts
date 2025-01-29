@@ -63,7 +63,14 @@ export class CotelReservaDeudaRepository {
     const result = await this.db.manyOrNone(query, params);
     return result;
   }
-
+  async findByAlias(pAlias): Promise<any> {
+    const query = `select rd.* from cotel.qr_generado qg 
+inner join cotel.reserva_deuda rd on rd.qr_generado_id = qg.qr_generado_id 
+where qg.estado_id = 1000 and rd.estado_id = 1000 and qg.alias = $1`;
+    const params = [pAlias];
+    const result = await this.db.manyOrNone(query, params);
+    return result;
+  }
 
 
 }

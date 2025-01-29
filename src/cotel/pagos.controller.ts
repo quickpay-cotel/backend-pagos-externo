@@ -25,7 +25,7 @@ export class PagosController {
   async liberarReserva(@Param("alias") pAlias: string) {
     return await this.pagosService.obtenerComprobantes(pAlias);
   }
-  /*@Get("envioCorreo")
+  @Get("envioCorreo")
   async envioCorreo() {
     let paymentData = {
       nombreCliente:'Alvaro Zenon Quispe Segales',
@@ -35,7 +35,7 @@ export class PagosController {
       fecha:'12/12/2025',
       nombreEmpresa:'COTEL'
     };
-    await this.emailService.sendMailNotifyPayment('alvaroquispesegales@gmail.com', 'confirmación de pago', paymentData);
+    await this.emailService.sendMailNotifyPayment('alvaro.quispe@quickpay.com.bo', 'confirmación de pago', paymentData);
     return 'Email sent!';
-  }*/
+  }
 }
