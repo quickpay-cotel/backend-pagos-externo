@@ -5,6 +5,7 @@ import { IDatabase } from "pg-promise";
 
 @Injectable()
 export class ApiCotelService {
+    private token: any;
     private readonly axiosInstance: AxiosInstance;
     private bd: IDatabase<any>;
     constructor(@Inject("DB_CONNECTION") db: IDatabase<any>) {
@@ -46,7 +47,7 @@ export class ApiCotelService {
             console.log(`Respuesta de ${response.config.url}:`, response.status);
             return response;
         }, error => {
-            
+
             const logData = error.config ? error.config['logData'] : {};
             const logEntry = {
                 ...logData,
@@ -60,10 +61,34 @@ export class ApiCotelService {
             return Promise.reject(error);
         });
     }
+
+    async generarToken(): Promise<any> {
+        try {
+            const response = await this.axiosInstance.post("/auth",
+                {
+                    username: process.env.COTEL_USERNAME,
+                    password: process.env.COTEL_PASSWORD,
+                }
+            );
+            const status = response.data.status;
+            if (status == "OK") {
+                this.token = response.data.data;
+            } else {
+                this.token = "";
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
     // Reservar deuda
     async reservaPago(arrayDeudasDto: any): Promise<any> {
         try {
-            const response = await this.axiosInstance.post("/pagarDeuda", { listaDeuda: arrayDeudasDto });
+            this.generarToken();
+            const response = await this.axiosInstance.post("/web/pagarDeuda", { listaDeuda: arrayDeudasDto }, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
             const codigo = response.data.status;
             if (codigo == "OK") {
                 return response.data.data;
@@ -78,7 +103,12 @@ export class ApiCotelService {
     // Consulta datos cliente
     async consultaDatosCliente(consultaDatosClienteRequestDto: ConsultaDatosClienteDto) {
         try {
-            const response = await this.axiosInstance.post("/consultar", consultaDatosClienteRequestDto);
+            this.generarToken();
+            const response = await this.axiosInstance.post("/web/consultar", consultaDatosClienteRequestDto, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
             const codigo = response.data.status;
             if (codigo == "OK") {
                 return response.data.data;
@@ -92,9 +122,14 @@ export class ApiCotelService {
     // Consulta datos cliente
     async consultaDeudaCliente(pContratoId: string, pServicioId: string) {
         try {
-            const response = await this.axiosInstance.post("/consultarDeuda", {
+            this.generarToken();
+            const response = await this.axiosInstance.post("/web/consultarDeuda", {
                 contratoId: pContratoId,
                 servicioId: pServicioId,
+            }, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
             });
             const codigo = response.data.status;
             if (codigo == "OK") {
@@ -110,8 +145,13 @@ export class ApiCotelService {
     // Libera Reserva
     async liberarReserva(pTransaccionId: string) {
         try {
+            this.generarToken();
             const response = await this.axiosInstance.post("/liberarDeuda", {
                 idTransaccion: pTransaccionId
+            }, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
             });
             const codigo = response.data.status;
             if (codigo == "OK") {
@@ -125,7 +165,12 @@ export class ApiCotelService {
     }
     async confirmarPago(payload: any) {
         try {
-            const response = await this.axiosInstance.post("/confirmarPago", payload);
+            this.generarToken();
+            const response = await this.axiosInstance.post("/web/confirmarPago", payload, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
             const codigo = response.data.status;
             if (codigo == "OK") {
                 return response.data.data;
