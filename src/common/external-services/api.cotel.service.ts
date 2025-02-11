@@ -83,7 +83,7 @@ export class ApiCotelService {
     // Reservar deuda
     async reservaPago(arrayDeudasDto: any): Promise<any> {
         try {
-            this.generarToken();
+            await this.generarToken();
             const response = await this.axiosInstance.post("/web/pagarDeuda", { listaDeuda: arrayDeudasDto }, {
                 headers: {
                     Authorization: `Bearer ${this.token}`,
@@ -103,7 +103,7 @@ export class ApiCotelService {
     // Consulta datos cliente
     async consultaDatosCliente(consultaDatosClienteRequestDto: ConsultaDatosClienteDto) {
         try {
-            this.generarToken();
+            await this.generarToken();
             const response = await this.axiosInstance.post("/web/consultar", consultaDatosClienteRequestDto, {
                 headers: {
                     Authorization: `Bearer ${this.token}`,
@@ -122,7 +122,7 @@ export class ApiCotelService {
     // Consulta datos cliente
     async consultaDeudaCliente(pContratoId: string, pServicioId: string) {
         try {
-            this.generarToken();
+            await this.generarToken();
             const response = await this.axiosInstance.post("/web/consultarDeuda", {
                 contratoId: pContratoId,
                 servicioId: pServicioId,
@@ -145,7 +145,7 @@ export class ApiCotelService {
     // Libera Reserva
     async liberarReserva(pTransaccionId: string) {
         try {
-            this.generarToken();
+            await this.generarToken();
             const response = await this.axiosInstance.post("/liberarDeuda", {
                 idTransaccion: pTransaccionId
             }, {
@@ -165,7 +165,7 @@ export class ApiCotelService {
     }
     async confirmarPago(payload: any) {
         try {
-            this.generarToken();
+            await this.generarToken();
             const response = await this.axiosInstance.post("/web/confirmarPago", payload, {
                 headers: {
                     Authorization: `Bearer ${this.token}`,

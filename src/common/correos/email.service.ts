@@ -50,7 +50,7 @@ export class EmailService {
     }
   }
   
-  async sendMailNotifyPaymentAndAttachments(to: string, subject: string, paymentData: any, pdfFilePath:string) {
+  async sendMailNotifyPaymentAndAttachments(to: string, subject: string, paymentData: any, reciboPath:string,facturaPath:string) {
     try {
 
       const templateEmail = path.join(process.cwd(), 'plantillas/correos', `notificacion_pago.html`);
@@ -64,20 +64,29 @@ export class EmailService {
         .replace('{{fecha}}', paymentData.fecha)
         .replace('{{nombre_empresa}}', paymentData.nombreEmpresa)
         .replace('{{anio_actual}}', new Date().getFullYear().toString());
+        let attachments = [];
+        if(reciboPath){
+          attachments.push({
+            filename: path.basename(reciboPath),    // Nombre del archivo adjunto
+            path: reciboPath,             // Ruta del archivo PDF a adjuntar
+            contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
+          })
+        }
+        if(facturaPath){
+          attachments.push({
+            filename: path.basename(facturaPath),    // Nombre del archivo adjunto
+            path: facturaPath,             // Ruta del archivo PDF a adjuntar
+            contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
+          })
+        }
 
       //await this.transporter.sendMail({ // se lenteaa
-      this.transporter.sendMail({
+      await this.transporter.sendMail({
         from: process.env.MAIL_FROM,
         to,
         subject,
         html: emailHtml,
-        attachments: [
-          {
-            filename: path.basename(pdfFilePath),    // Nombre del archivo adjunto
-            path: pdfFilePath,             // Ruta del archivo PDF a adjuntar
-            contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
-          }
-        ]
+        attachments: attachments
       });
 
     } catch (error) {

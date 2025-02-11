@@ -81,11 +81,11 @@ export class ApiIllaService {
   }
 
   async generarFactura(body: any) {
-    console.log("request para generacion de factura");
-    console.log(body);
     try {
+      console.log("geenrando facuraaa");
+      console.log(body);
       await this.generarToken();
-      const response = await this.axiosInstance.post("/api/v1/bills/buyandsell", body, {
+      const response = await this.axiosInstance.post("/api/v1/telecoms", body, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
@@ -99,6 +99,58 @@ export class ApiIllaService {
       throw "Error generar factura";
     }
   }
+  async obtenerProductos() {
+    try {
+      await this.generarToken();
+      const response = await this.axiosInstance.get(`/api/v1/customers/${process.env.ILLA_NIT}/products/${process.env.ILLA_CODIGO_EMPRESA}`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      if (response.data.status) {
+        return response.data.productos;
+      } else {
+        throw "Error al obtener productos";
+      }
+    } catch (error) {
+      throw "Error al obtener productos";
+    }
+  }
+  async obtenerPuntosVentas() {
+    try {
+      await this.generarToken();
+      const response = await this.axiosInstance.get(`/api/v1/customers/${process.env.ILLA_NIT}/pointsofsale/${process.env.ILLA_CODIGO_EMPRESA}`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      if (response.data.status) {
+        return response.data.pointsOfSale;
+      } else {
+        throw "Error al obtener puntos de ventas";
+      }
+    } catch (error) {
+      throw "Error al obtener puntos de ventas";
+    }
+  }
+  async obtenerSucursales() {
+    try {
+      await this.generarToken();
+      const response = await this.axiosInstance.get(`/api/v1/customers/${process.env.ILLA_NIT}/offices/${process.env.ILLA_CODIGO_EMPRESA}`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      if (response.data.status) {
+        return response.data.offices;
+      } else {
+        throw "Error al obtener sucursales";
+      }
+    } catch (error) {
+      throw "Error al obtener sucursales";
+    }
+  }
+  
   private async saveLogToDatabase(logEntry: any) {
     try {
       await this.bd.query(
