@@ -146,7 +146,7 @@ export class ApiCotelService {
     async liberarReserva(pTransaccionId: string) {
         try {
             await this.generarToken();
-            const response = await this.axiosInstance.post("/liberarDeuda", {
+            const response = await this.axiosInstance.post("/web/liberarDeuda", {
                 idTransaccion: pTransaccionId
             }, {
                 headers: {
