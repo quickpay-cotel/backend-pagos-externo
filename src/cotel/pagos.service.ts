@@ -455,7 +455,7 @@ export class PagosService {
 
               cantidad: deudaDetalle.cantidad,//decimal
               //Monto que representa el precio del producto o servicio. Acepta 2 decimales.
-              precioUnitario: parseInt(deudaDetalle.monto_unitario),//decimal
+              precioUnitario: parseFloat(deudaDetalle.monto_unitario),//decimal
               /*Monto que representa el descuento aplicado al producto o servicio vendido. Acepta
               2 decimales. Se debe considerar que este valor no llega al Registro de Compras del
               cliente dado que el SIN asume que este tipo de descuentos pueden considerarse
@@ -515,7 +515,6 @@ export class PagosService {
   private async generarRecibo(vAlias: string): Promise<any> {
 
     try {
-
 
       // Generar contenido HTML dinámico para RECIBO
       let transaccion = await this.cotelTransacionesRepository.findByAlias(vAlias);
