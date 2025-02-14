@@ -7,15 +7,20 @@ import { HttpExceptionFilter } from "./common/filters/all-exceptions.filter";
 import * as fs from "fs";
 dotenv.config(); // Carga las variables de entorno
 async function bootstrap() {
-  const httpsOptions = {
-    key: fs.readFileSync('/etc/ssl/quickpay.com.bo/private.key'),
-    cert: fs.readFileSync('/etc/ssl/quickpay.com.bo/certificate.crt'),
-    ca: fs.readFileSync('/etc/ssl/quickpay.com.bo/ca_bundle.crt'), // Si tienes un certificado intermedio
-  };
-  const app = await NestFactory.create(AppModule, {
-    httpsOptions,
-  });
-  //const app = await NestFactory.create(AppModule);
+  let app;
+
+  if (process.env.NODE_ENV === 'production') {
+    // Configuración con SSL en servidor
+    const httpsOptions = {
+      key: fs.readFileSync('/etc/ssl/quickpay.com.bo/private.key'),
+      cert: fs.readFileSync('/etc/ssl/quickpay.com.bo/certificate.crt'),
+      ca: fs.readFileSync('/etc/ssl/quickpay.com.bo/ca_bundle.crt'), // Si tienes un certificado intermedio
+    };
+    app = await NestFactory.create(AppModule, { httpsOptions });
+  } else {
+    // Configuración sin SSL en local
+    app = await NestFactory.create(AppModule);
+  }
 
   app.useGlobalInterceptors(new ResponseInterceptor());
 

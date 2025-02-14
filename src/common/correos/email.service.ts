@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
+import { FuncionesFechas } from '../utils/funciones.fechas';
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
@@ -29,13 +30,12 @@ export class EmailService {
 
       const emailHtml = emailTemplate
         .replace('{{nombre_cliente}}', paymentData.nombreCliente)
-        .replace('{{numero_transaccion}}', paymentData.numeroTransaccion)
+        .replace('{{numero_transaccion}}', paymentData.numeroTransaccion.slice(-8))
         .replace('{{monto}}', paymentData.monto)
         .replace('{{moneda}}', paymentData.moneda)
-        .replace('{{fecha}}', paymentData.fecha)
+        .replace('{{fecha}}', FuncionesFechas.obtenerFechaFormato)
         .replace('{{nombre_empresa}}', paymentData.nombreEmpresa)
-        .replace('{{anio_actual}}', new Date().getFullYear().toString());
-
+        .replace('{{anio_actual}}','' )
       //await this.transporter.sendMail({ // se lenteaa
       this.transporter.sendMail({
         from: process.env.MAIL_FROM,
@@ -50,29 +50,33 @@ export class EmailService {
     }
   }
   
-  async sendMailNotifyPaymentAndAttachments(to: string, subject: string, paymentData: any, reciboPath:string,facturaPath:string) {
+  async sendMailNotifyPaymentAndAttachments(to: string, subject: string, paymentData: any, reciboPath:string,facturaPath:string,facturasCotel:string) {
     try {
 
-      const templateEmail = path.join(process.cwd(), 'plantillas/correos', `notificacion_pago.html`);
+      const templateEmail = path.join(process.cwd(), 'plantillas/correos', `notificacion_factura.html`);
       const emailTemplate = fs.readFileSync(templateEmail).toString();
 
       const emailHtml = emailTemplate
         .replace('{{nombre_cliente}}', paymentData.nombreCliente)
-        .replace('{{numero_transaccion}}', paymentData.numeroTransaccion)
+        .replace('{{numero_transaccion}}', paymentData.numeroTransaccion.slice(-8))
         .replace('{{monto}}', paymentData.monto)
         .replace('{{moneda}}', paymentData.moneda)
-        .replace('{{fecha}}', paymentData.fecha)
+        .replace('{{fecha}}', FuncionesFechas.obtenerFechaFormato)
         .replace('{{nombre_empresa}}', paymentData.nombreEmpresa)
-        .replace('{{anio_actual}}', new Date().getFullYear().toString());
+        .replace('{{anio_actual}}', '')
+        .replace('{{facturas_cotel}}', facturasCotel);
+        
         let attachments = [];
-        if(reciboPath){
+
+        
+        if(reciboPath && fs.existsSync(reciboPath)){
           attachments.push({
             filename: path.basename(reciboPath),    // Nombre del archivo adjunto
             path: reciboPath,             // Ruta del archivo PDF a adjuntar
             contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
           })
         }
-        if(facturaPath){
+        if(facturaPath  && fs.existsSync(facturaPath)){
           attachments.push({
             filename: path.basename(facturaPath),    // Nombre del archivo adjunto
             path: facturaPath,             // Ruta del archivo PDF a adjuntar

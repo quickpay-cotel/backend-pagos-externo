@@ -27,4 +27,14 @@ export class FuncionesFechas {
     // Devolver la hora en el formato "HH:mm:ss"
     return `${horas < 10 ? '0' + horas : horas}:${minutos < 10 ? '0' + minutos : minutos}:${segundos < 10 ? '0' + segundos : segundos}`;
   }
+  static obtenerFechaFormato() {
+    const ahora = new Date();
+    const dia = ahora.getDate().toString().padStart(2, '0');
+    const mes = (ahora.getMonth() + 1).toString().padStart(2, '0'); // Meses van de 0 a 11
+    const anio = ahora.getFullYear();
+    const horas = ahora.getHours().toString().padStart(2, '0');
+    const minutos = ahora.getMinutes().toString().padStart(2, '0');
+
+    return `${dia}/${mes}/${anio} ${horas}:${minutos}`;
+}
 }

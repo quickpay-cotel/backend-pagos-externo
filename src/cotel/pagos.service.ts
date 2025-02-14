@@ -141,7 +141,7 @@ export class PagosService {
 
       // GENERAR RECIBOS
       await this.generarRecibo(confirmaPagoQrDto.alias);
-
+      let respCotel:any
       // CONFIRMAR A COTEL
       try {
         let deudas = await this.cotelDeudasRepository.findByAliasPagado(confirmaPagoQrDto.alias);
@@ -166,7 +166,7 @@ export class PagosService {
           complementoDocumento: deudas[0].complemento_documento, // complmento del nro de documento
           urlFactura: resFact ? resFact.urlVerificacionSin : '' //url de la factura electrónica en el SIAT o servidor del proveedor.
         };
-        let respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
+        respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
         console.log("respuesta de COTE al confirmar el PAGO");
         console.log(respCotel);
       } catch (error) {
@@ -191,6 +191,13 @@ export class PagosService {
         const reciboPath = path.join(this.storePath + '/recibos/' + 'recibo-' + confirmaPagoQrDto.alias + '.pdf');
         const facturaPath = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '.pdf');
 
+        // armar facturas cotel
+        let facturas = '';
+        if(respCotel?.listaPagos?.length>0){
+          for(const deuda of respCotel.listaPagos){
+            facturas = facturas+deuda.urlFactura+'<br>'
+          }
+        }
         // notificar por correo al cliente con las comprobantes de pago, facturas y recibos
         let paymentDataConfirmado = {
           nombreCliente: confirmaPagoQrDto.nombreCliente,
@@ -200,7 +207,8 @@ export class PagosService {
           fecha: confirmaPagoQrDto.fechaproceso,
           nombreEmpresa: 'COTEL'
         };
-        this.emailService.sendMailNotifyPaymentAndAttachments(qrGenerado.correo_para_comprobante, 'confirmación de pago y comprobantes', paymentDataConfirmado, reciboPath, facturaPath);
+        this.emailService.sendMailNotifyPaymentAndAttachments(qrGenerado.correo_para_comprobante, 'confirmación de pago y comprobantes', 
+          paymentDataConfirmado, reciboPath, facturaPath,facturas);
       } catch (error) {
         // error al enviar correooooo
       }
