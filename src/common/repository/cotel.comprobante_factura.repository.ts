@@ -33,4 +33,12 @@ export class CotelComprobanteFacturaRepository {
     const result = await this.db.many(query, params);
     return result;
   }
+  async findNroFactura(): Promise<any> {
+    const query = `SELECT cotel.fn_obtener_numero_factura() as numero_factura`;
+    const result = await this.db.one(query);
+  
+    // Accede directamente a la propiedad numero_factura
+    return result.numero_factura;
+  }
+
 }

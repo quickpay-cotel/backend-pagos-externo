@@ -50,10 +50,11 @@ export class EmailService {
     }
   }
   
-  async sendMailNotifyPaymentAndAttachments(to: string, subject: string, paymentData: any, reciboPath:string,facturaPath:string,facturasCotel:string) {
+  async sendMailNotifyPaymentAndAttachments(to: string, subject: string, paymentData: any, reciboPath:string,
+    facturaPathPdf:string,facturaPathXml:string,facturasUrl:string) {
     try {
 
-      const templateEmail = path.join(process.cwd(), 'plantillas/correos', `notificacion_factura.html`);
+      const templateEmail = path.join(process.cwd(), 'plantillas/correos', `notificacion_pago.html`);
       const emailTemplate = fs.readFileSync(templateEmail).toString();
 
       const emailHtml = emailTemplate
@@ -64,7 +65,7 @@ export class EmailService {
         .replace('{{fecha}}', FuncionesFechas.obtenerFechaFormato)
         .replace('{{nombre_empresa}}', paymentData.nombreEmpresa)
         .replace('{{anio_actual}}', '')
-        .replace('{{facturas_cotel}}', facturasCotel);
+        .replace('{{facturas_cotel}}', facturasUrl);
         
         let attachments = [];
 
@@ -76,11 +77,18 @@ export class EmailService {
             contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
           })
         }
-        if(facturaPath  && fs.existsSync(facturaPath)){
+        if(facturaPathPdf  && fs.existsSync(facturaPathPdf)){
           attachments.push({
-            filename: path.basename(facturaPath),    // Nombre del archivo adjunto
-            path: facturaPath,             // Ruta del archivo PDF a adjuntar
+            filename: path.basename(facturaPathPdf),    // Nombre del archivo adjunto
+            path: facturaPathPdf,             // Ruta del archivo PDF a adjuntar
             contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
+          })
+        }
+        if(facturaPathXml  && fs.existsSync(facturaPathXml)){
+          attachments.push({
+            filename: path.basename(facturaPathXml),    // Nombre del archivo adjunto
+            path: facturaPathXml,             // Ruta del archivo PDF a adjuntar
+            contentType: 'application/xml' // Tipo MIME del archivo (PDF)
           })
         }
 
