@@ -34,7 +34,9 @@ export class FuncionesFechas {
     const anio = ahora.getFullYear();
     const horas = ahora.getHours().toString().padStart(2, '0');
     const minutos = ahora.getMinutes().toString().padStart(2, '0');
-
-    return `${dia}/${mes}/${anio} ${horas}:${minutos}`;
-}
+    const segundos = ahora.getSeconds().toString().padStart(2, '0'); // Agregado
+  
+    return `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
+  }
+  
 }

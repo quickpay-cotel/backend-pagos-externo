@@ -531,7 +531,8 @@ export class PagosService {
         const htmlContent = this.renderTemplate(this.plantillasPath + '/recibo.html', {
           nroRecibo: datosDeuda.nroRecibo.slice(-8) ?? 0,
           nombreCliente: datosDeuda.nombreCliente ?? '',
-          fechaPago: datosDeuda.fechaPago ?? '',
+          //fechaPago: datosDeuda.fechaPago ?? '',
+          fechaPago: FuncionesFechas.obtenerFechaFormato,
           metodoPago: datosDeuda.metodoPago ?? '',
           tableRows: datosDeuda.detalle.map(item => `
        <tr>
