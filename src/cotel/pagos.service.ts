@@ -79,6 +79,7 @@ export class PagosService {
   }
   async confirmaPagoQr(confirmaPagoQrDto: ConfirmaPagoQrDto) {
     let correoCliente = 'alvaro.quispe@quickpay.com.bo'
+    let transactionInsert:any;
     try {
       // REGISTRAR CONFIRMACIÓN DE PAGO
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(confirmaPagoQrDto.alias);
@@ -86,7 +87,10 @@ export class PagosService {
       correoCliente = qrGenerado.correo_para_comprobante;
       if (qrGenerado.monto != confirmaPagoQrDto.monto) throw new Error("Monto no es igual al QR generado");
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, mensaje: 'PROCESANDO PAGO' });
+      let reserva = await this.cotelReservaDeudaRepository.findByAlias(confirmaPagoQrDto.alias);
+      if (reserva && reserva[0].estado_reserva_id == 1005) throw new Error("Pago ya se encuentra Registrado en QUICKPAY");
       let deudasReservados = [];
+    
       await this.db.tx(async (t) => {
         let insertConfirmQr = await this.cotelDatosConfirmadoQrRepository.create({
           qr_generado_id: qrGenerado.qr_generado_id,
@@ -103,7 +107,7 @@ export class PagosService {
           estado_id: 1000
         });
         // registra transaccion realizado
-        await this.cotelTransacionesRepository.create({
+        transactionInsert = await this.cotelTransacionesRepository.create({
           datosconfirmado_qr_id: insertConfirmQr.datosconfirmado_qr_id,
           metodo_pago_id: 1009,
           monto_pagado: confirmaPagoQrDto.monto,
@@ -119,17 +123,17 @@ export class PagosService {
         }
       });
     } catch (error) {
-      console.log("registro de pago en quickpay");
-      console.log(error);
+      throw new HttpException(error.message || 'Error interno del servidor', HttpStatus.NOT_FOUND);
     }
 
     // ============================
 
     // GENERAR FACTURA 
-    let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias);
+    let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias,transactionInsert.transaccion_id);
 
     // GENERAR RECIBOS
-    await this.generarRecibo(confirmaPagoQrDto.alias);
+
+    await this.generarRecibo(confirmaPagoQrDto.alias,transactionInsert.transaccion_id);
 
     // CONFIRMAR A COTEL
     let respCotel: any
@@ -159,6 +163,8 @@ export class PagosService {
       respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
       console.log("respuesta de COTE al confirmar el PAGO");
       console.log(respCotel);
+      this.cotelTransacionesRepository.cambiarEstadoTransactionById(transactionInsert.transaccion_id,1012);
+
     } catch (error) {
       console.log("Confirmacion pago a COTEL");
       console.log(error);
@@ -196,13 +202,13 @@ export class PagosService {
           }
         }
       }
-      
+
       // Agregar la URL de verificación como otro <li> separado
       if (resFact?.urlVerificacionSin) {
         facturasUrl += `<li><a href="${resFact.urlVerificacionSin}" target="_blank">${resFact.urlVerificacionSin}</a></li>`;
       }
-      if(facturasUrl!=""){
-        facturasUrl +="</div></p>";
+      if (facturasUrl != "") {
+        facturasUrl += "</div></p>";
       }
       // notificar por correo al cliente con las comprobantes de pago, facturas y recibos
       let paymentDataConfirmado = {
@@ -212,7 +218,7 @@ export class PagosService {
         fecha: confirmaPagoQrDto.fechaproceso,
       };
       this.emailService.sendMailNotifyPaymentAndAttachments(correoCliente, 'Confirmación de Pago Recibida',
-        paymentDataConfirmado, reciboPath, facturaPathPdf,facturaPathXml, facturasUrl);
+        paymentDataConfirmado, reciboPath, facturaPathPdf, facturaPathXml, facturasUrl);
     } catch (error) {
       // log de error en el envio de corrreo
     }
@@ -264,7 +270,7 @@ export class PagosService {
     return formattedDate;
   }
 
-  private async generarFacturaILLA(vAlias: string): Promise<any> {
+  private async generarFacturaILLA(vAlias: string, vTransactionId:number): Promise<any> {
     try {
       // GGENERAR FACTURA
       let productos = await this.apiIllaService.obtenerProductos();
@@ -509,7 +515,7 @@ export class PagosService {
           fecha_emision: resFacturacion.fechaEmision,
           estado_id: 1000
         });
-
+        this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId,1011);
         return resFacturacion;
       } else {
         return null;
@@ -519,7 +525,7 @@ export class PagosService {
       return null;
     }
   }
-  private async generarRecibo(vAlias: string): Promise<any> {
+  private async generarRecibo(vAlias: string,vTransactionId:number): Promise<any> {
 
     try {
 
@@ -561,9 +567,10 @@ export class PagosService {
           estado_id: 1000
         });
       }
-
+      this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId,1011);
     } catch (error) {
       // se debe almacenar log del error..
+      console.log("error el genear recibo: " + error);
     }
   }
 

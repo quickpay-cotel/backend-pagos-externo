@@ -30,7 +30,7 @@ export class CotelComprobanteReciboRepository {
     inner join cotel.qr_generado qg on qg.qr_generado_id = dq.qr_generado_id and qg.estado_id = 1000
     where cr.estado_id = 1000 and qg.alias = $1`;
     const params = [pAlias];
-    const result = await this.db.many(query, params);
+    const result = await this.db.manyOrNone(query, params);
     return result;
   }
 }

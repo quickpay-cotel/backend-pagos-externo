@@ -31,5 +31,61 @@ where dc.estado_id = 1000 and dc.alias_sip = $1`;
     const result = await this.db.manyOrNone(query, params);
     return result;
   }
-
+  async pagosMes(): Promise<any> {
+    const query = `   SELECT 
+    TO_CHAR(fecha_transaccion, 'YYYY-MM') AS mes,
+    SUM(monto_pagado) AS total_pagado
+FROM cotel.transacciones
+WHERE estado_transaccion_id = 1010 
+GROUP BY mes
+ORDER BY mes DESC;`;
+    const result = await this.db.manyOrNone(query);
+    return result;
+  }
+  async pagosSemana(): Promise<any> {
+    const query = `SELECT 
+    DATE_TRUNC('week', fecha_transaccion) AS semana,
+    SUM(monto_pagado) AS total_pagado
+FROM cotel.transacciones
+WHERE estado_transaccion_id = 1010 
+GROUP BY semana
+ORDER BY semana DESC;`;
+    const result = await this.db.manyOrNone(query);
+    return result;
+  }
+  async pagosPorEstado(): Promise<any> {
+    const query = ` SELECT 
+    d.descripcion AS estado,
+    COUNT(*) AS cantidad_transacciones
+FROM cotel.transacciones t
+JOIN cotel.dominios d ON t.estado_transaccion_id = d.dominio_id
+GROUP BY estado
+ORDER BY cantidad_transacciones DESC;`;
+    const result = await this.db.manyOrNone(query);
+    return result;
+  }
+  async pagosUltimos(pLimit:number): Promise<any> {
+    const query = `SELECT 
+    transaccion_id,
+    monto_pagado,
+    moneda,
+    fecha_transaccion
+FROM cotel.transacciones
+WHERE estado_transaccion_id = 1010 
+ORDER BY fecha_transaccion DESC
+LIMIT $1;`;
+    const params = [pLimit];
+    const result = await this.db.manyOrNone(query,params);
+    return result;
+  }
+  async cambiarEstadoTransactionById(
+    id: number,
+    estado:number,
+    t?: IDatabase<any>,
+  ): Promise<any> {
+    const query = `UPDATE cotel.transacciones SET estado_transaccion_id=$2 WHERE transaccion_id=$1 RETURNING *;`;
+    const params = [id, estado];
+    const result = t ? await t.oneOrNone(query, params) : await this.db.oneOrNone(query, params);
+    return result;
+  }
 }
