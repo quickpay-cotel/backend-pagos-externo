@@ -8,12 +8,15 @@ import { CotelDatosConfirmadoQrRepository } from "./cotel.datosconfirmado_qr.rep
 import { CotelTransacionesRepository } from "./cotel.transacciones.repository";
 import { CotelComprobanteFacturaRepository } from "./cotel.comprobante_factura.repository";
 import { CotelComprobanteReciboRepository } from "./cotel.comprobante_recibo.repository";
+import { CotelErrorLogsRepository } from "./cotel.error_logs.repository";
 
 @Module({
   imports: [], // Importa el ConfigModule para manejar las variables de entorno
   providers: [ CotelContratoRepository, CotelDetalleDeudasRepository, CotelDeudasRepository,
-    CotelQrGeneradoRepository, CotelReservaDeudaRepository,CotelDatosConfirmadoQrRepository,CotelTransacionesRepository,CotelComprobanteFacturaRepository,CotelComprobanteReciboRepository],
+    CotelQrGeneradoRepository, CotelReservaDeudaRepository,CotelDatosConfirmadoQrRepository,CotelTransacionesRepository,
+    CotelComprobanteFacturaRepository,CotelComprobanteReciboRepository,CotelErrorLogsRepository],
   exports: [ CotelContratoRepository, CotelDetalleDeudasRepository, CotelDeudasRepository,
-    CotelQrGeneradoRepository, CotelReservaDeudaRepository,CotelDatosConfirmadoQrRepository,CotelTransacionesRepository,CotelComprobanteFacturaRepository,CotelComprobanteReciboRepository],
+    CotelQrGeneradoRepository, CotelReservaDeudaRepository,CotelDatosConfirmadoQrRepository,
+    CotelTransacionesRepository,CotelComprobanteFacturaRepository,CotelComprobanteReciboRepository,CotelErrorLogsRepository],
 })
 export class RepositoryModule { }

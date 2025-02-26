@@ -17,12 +17,13 @@ import { CotelComprobanteReciboRepository } from "src/common/repository/cotel.co
 
 import * as fs from 'fs';
 import * as path from 'path';
-
+import * as os from 'os';
 import * as puppeteer from 'puppeteer';
 
 import { CotelService } from "./cotel.service";
 import { CotelDeudasRepository } from "src/common/repository/cotel.deudas.repository";
 import { EmailService } from 'src/common/correos/email.service';
+import { CotelErrorLogsRepository } from 'src/common/repository/cotel.error_logs.repository';
 
 @Injectable()
 export class PagosService {
@@ -47,6 +48,7 @@ export class PagosService {
     private readonly cotelDetalleDeudasRepository: CotelDetalleDeudasRepository,
     private readonly cotelService: CotelService,
     private readonly emailService: EmailService,
+    private readonly cotelErrorLogsRepository: CotelErrorLogsRepository,
     @Inject("DB_CONNECTION") private db: IDatabase<any>,) {
 
   }
@@ -78,8 +80,10 @@ export class PagosService {
     }
   }
   async confirmaPagoQr(confirmaPagoQrDto: ConfirmaPagoQrDto) {
+    const ipServidor = os.hostname();
+    const fechaInicio = new Date();
     let correoCliente = 'alvaro.quispe@quickpay.com.bo'
-    let transactionInsert:any;
+    let transactionInsert: any;
     try {
       // REGISTRAR CONFIRMACIÓN DE PAGO
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(confirmaPagoQrDto.alias);
@@ -90,7 +94,7 @@ export class PagosService {
       let reserva = await this.cotelReservaDeudaRepository.findByAlias(confirmaPagoQrDto.alias);
       if (reserva && reserva[0].estado_reserva_id == 1005) throw new Error("Pago ya se encuentra Registrado en QUICKPAY");
       let deudasReservados = [];
-    
+
       await this.db.tx(async (t) => {
         let insertConfirmQr = await this.cotelDatosConfirmadoQrRepository.create({
           qr_generado_id: qrGenerado.qr_generado_id,
@@ -115,6 +119,7 @@ export class PagosService {
           estado_transaccion_id: 1010,
           estado_id: 1000
         });
+
         deudasReservados = await this.cotelReservaDeudaRepository.findByQrGeneradoId(qrGenerado.qr_generado_id);
         if (!deudasReservados || deudasReservados.length == 0) throw new Error("No existe deudas reservadas");
         // cambair estado de deudas reservados a PAGADO
@@ -123,17 +128,28 @@ export class PagosService {
         }
       });
     } catch (error) {
+      await this.cotelErrorLogsRepository.create({
+        alias: confirmaPagoQrDto.alias,
+        metodo: this.getMethodName()+' - recibir pago',
+        mensaje: error.message,
+        stack_trace: error.stack,
+        ip_servidor: ipServidor,
+        fecha_inicio: fechaInicio,
+        fecha_fin: new Date(),
+        parametros: confirmaPagoQrDto
+      });
+
       throw new HttpException(error.message || 'Error interno del servidor', HttpStatus.NOT_FOUND);
     }
 
     // ============================
 
     // GENERAR FACTURA 
-    let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias,transactionInsert.transaccion_id);
+    let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias, transactionInsert.transaccion_id);
 
     // GENERAR RECIBOS
 
-    await this.generarRecibo(confirmaPagoQrDto.alias,transactionInsert.transaccion_id);
+    await this.generarRecibo(confirmaPagoQrDto.alias, transactionInsert.transaccion_id);
 
     // CONFIRMAR A COTEL
     let respCotel: any
@@ -163,11 +179,20 @@ export class PagosService {
       respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
       console.log("respuesta de COTE al confirmar el PAGO");
       console.log(respCotel);
-      this.cotelTransacionesRepository.cambiarEstadoTransactionById(transactionInsert.transaccion_id,1012);
+      this.cotelTransacionesRepository.cambiarEstadoTransactionById(transactionInsert.transaccion_id, 1013);
 
     } catch (error) {
-      console.log("Confirmacion pago a COTEL");
-      console.log(error);
+      this.cotelTransacionesRepository.cambiarEstadoTransactionById(transactionInsert.transaccion_id, 1014);
+      await this.cotelErrorLogsRepository.create({
+        alias: confirmaPagoQrDto.alias,
+        metodo: this.getMethodName()+' - confirmar cotel',
+        mensaje: error.message,
+        stack_trace: error.stack,
+        ip_servidor: ipServidor,
+        fecha_inicio: fechaInicio,
+        fecha_fin: new Date(),
+        parametros: confirmaPagoQrDto
+      });
     }
     // ===================
 
@@ -220,7 +245,16 @@ export class PagosService {
       this.emailService.sendMailNotifyPaymentAndAttachments(correoCliente, 'Confirmación de Pago Recibida',
         paymentDataConfirmado, reciboPath, facturaPathPdf, facturaPathXml, facturasUrl);
     } catch (error) {
-      // log de error en el envio de corrreo
+      await this.cotelErrorLogsRepository.create({
+        alias: confirmaPagoQrDto.alias,
+        metodo: this.getMethodName()+' - notificar correo electronico',
+        mensaje: error.message,
+        stack_trace: error.stack,
+        ip_servidor: ipServidor,
+        fecha_inicio: fechaInicio,
+        fecha_fin: new Date(),
+        parametros: confirmaPagoQrDto
+      });
     }
 
   }
@@ -270,7 +304,9 @@ export class PagosService {
     return formattedDate;
   }
 
-  private async generarFacturaILLA(vAlias: string, vTransactionId:number): Promise<any> {
+  private async generarFacturaILLA(vAlias: string, vTransactionId: number): Promise<any> {
+    const ipServidor = os.hostname();
+    const fechaInicio = new Date();
     try {
       // GGENERAR FACTURA
       let productos = await this.apiIllaService.obtenerProductos();
@@ -515,18 +551,32 @@ export class PagosService {
           fecha_emision: resFacturacion.fechaEmision,
           estado_id: 1000
         });
-        this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId,1011);
+        this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId, 1011);
         return resFacturacion;
       } else {
         return null;
       }
     } catch (error) {
       // se debe alacenar log del error ....
+      this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId, 1014);
+
+      await this.cotelErrorLogsRepository.create({
+        alias: vAlias,
+        metodo: this.getMethodName()+' - generar factura',
+        mensaje: error.message,
+        stack_trace: error.stack,
+        ip_servidor: ipServidor,
+        fecha_inicio: fechaInicio,
+        fecha_fin: new Date(),
+        parametros: {alias:vAlias,transactin_id:vTransactionId}
+      });
+
       return null;
     }
   }
-  private async generarRecibo(vAlias: string,vTransactionId:number): Promise<any> {
-
+  private async generarRecibo(vAlias: string, vTransactionId: number): Promise<any> {
+    const ipServidor = os.hostname();
+    const fechaInicio = new Date();
     try {
 
       // Generar contenido HTML dinámico para RECIBO
@@ -567,10 +617,19 @@ export class PagosService {
           estado_id: 1000
         });
       }
-      this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId,1011);
+      this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId, 1012);
     } catch (error) {
-      // se debe almacenar log del error..
-      console.log("error el genear recibo: " + error);
+      this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId, 1014);
+      await this.cotelErrorLogsRepository.create({
+        alias: vAlias,
+        metodo: this.getMethodName()+' - generar recibo',
+        mensaje: error.message,
+        stack_trace: error.stack,
+        ip_servidor: ipServidor,
+        fecha_inicio: fechaInicio,
+        fecha_fin: new Date(),
+        parametros: {alias:vAlias,transactin_id:vTransactionId}
+      });
     }
   }
 
@@ -592,6 +651,16 @@ export class PagosService {
       console.log(error);
       throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
+  }
+
+  private getMethodName(): string {
+    const stack = new Error().stack;
+    if (!stack) return 'UnknownMethod';
+
+    const stackLines = stack.split('\n');
+    if (stackLines.length < 3) return 'UnknownMethod';
+
+    return stackLines[2].trim().split(' ')[1]; // Extrae el nombre del método
   }
 }
 
