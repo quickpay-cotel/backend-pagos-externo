@@ -141,6 +141,28 @@ export class ApiCotelService {
             return error;
         }
     }
+    async consultaDeudaClienteConRespuestaOriginal(pContratoId: string, pServicioId: string) {
+        try {
+            await this.generarToken();
+            const response = await this.axiosInstance.post("/web/consultarDeuda", {
+                contratoId: pContratoId,
+                servicioId: pServicioId,
+            }, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
+            return response.data;
+            /*const codigo = response.data.status;
+            if (codigo == "OK") {
+                return response.data.data;
+            } else {
+                return null;
+            }*/
+        } catch (error) {
+            return error;
+        }
+    }
 
     // Libera Reserva
     async liberarReserva(pTransaccionId: string) {

@@ -50,9 +50,9 @@ export class CotelService {
   }
   async consultaDeudaCliente(consultaDeudasDto: ConsultaDeudasDto) {
     try {
-      let datosCliente = await this.apiCotelService.consultaDeudaCliente(consultaDeudasDto.contratoId,consultaDeudasDto.servicioId);
-      if (!datosCliente) throw new Error("error al obtener datos cliente");
-      return datosCliente;
+      let res = await this.apiCotelService.consultaDeudaClienteConRespuestaOriginal(consultaDeudasDto.contratoId,consultaDeudasDto.servicioId);
+      if (!res) throw new Error("error al obtener datos cliente");
+      return res;
     } catch (error) {
       console.log(error);
       return error;
@@ -122,6 +122,7 @@ export class CotelService {
           id_transaccion_sip: datosQr.idTransaccion,
           es_imagen_sip: datosQr.esImagen,
           correo_para_comprobante:deudasDto.correoParaComprobante,
+          nro_celular:deudasDto.nroCelular,
           estado_id: 1000
         }, t)
         if (!qrGenerado) throw new Error("nose pudo registrar QR");
