@@ -138,7 +138,9 @@ export class ApiCotelService {
                 return null;
             }
         } catch (error) {
-            return error;
+            //return error;
+            // se sugiere al,acenar logs
+            return null;
         }
     }
     async consultaDeudaClienteConRespuestaOriginal(pContratoId: string, pServicioId: string) {

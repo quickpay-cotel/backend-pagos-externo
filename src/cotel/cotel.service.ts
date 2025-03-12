@@ -50,12 +50,14 @@ export class CotelService {
   }
   async consultaDeudaCliente(consultaDeudasDto: ConsultaDeudasDto) {
     try {
-      let res = await this.apiCotelService.consultaDeudaClienteConRespuestaOriginal(consultaDeudasDto.contratoId,consultaDeudasDto.servicioId);
-      if (!res) throw new Error("error al obtener datos cliente");
-      return res;
+      let deudaCliente = await this.apiCotelService.consultaDeudaCliente(consultaDeudasDto.contratoId,consultaDeudasDto.servicioId);
+      if (!deudaCliente){
+        return [];
+      }
+      return deudaCliente;
     } catch (error) {
       console.log(error);
-      return error;
+      throw new HttpException(error.response.data.data, HttpStatus.NOT_FOUND);
     }
   }
   async generaQr(deudasDto: DeudasDto) {
