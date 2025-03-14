@@ -4,16 +4,19 @@ import {
   Get,
   Param,
   Post,
+  UseGuards,
 } from "@nestjs/common";
 import { ConfirmaPagoQrDto } from "./dto/confirma-pago-qr.dto";
 import { PagosService } from "./pagos.service";
 import { EmailService } from "src/common/correos/email.service";
+import { BasicAuthGuard } from "src/config/basic-auth.guard";
 @Controller("pagos")
 export class PagosController {
   constructor(private readonly pagosService: PagosService,
     private readonly emailService: EmailService
   ) {}
   @Post("confirma-pago-qr")
+  @UseGuards(BasicAuthGuard)
   async confirmaPagoQr(@Body() confirmaPagoQrDto: ConfirmaPagoQrDto) {
     return await this.pagosService.confirmaPagoQr(confirmaPagoQrDto);
   }
