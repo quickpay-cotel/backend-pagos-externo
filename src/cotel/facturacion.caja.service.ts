@@ -55,8 +55,8 @@ export class FacturacionCajaService {
         tipoEnvioId: 38, //factura individual
         codigoDocumentoSector: parseInt(facturaDeudaDto.codigo_documento_sector),
         codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
-        //codigoSucursal: puntosDeventas[0].codigoSucursal,
-        codigoSucursal: 69,
+        codigoSucursal: puntosDeventas[0].codigoSucursal,
+        //codigoSucursal: 69,
         municipio: "La Paz", //lugar de emisión de la factura
         telefono: "78873940", //nro de celular del punto de venta
         numeroFactura: parseInt(nroFactura), //ricardo dijo q se reinice por año
@@ -225,8 +225,8 @@ export class FacturacionCajaService {
         tipoEnvioId: 38, //factura individual
         codigoDocumentoSector: parseInt(facturaDeudaDto.codigo_documento_sector),
         codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
-        //codigoSucursal: puntosDeventas[0].codigoSucursal,
-        codigoSucursal: 69,
+        codigoSucursal: puntosDeventas[0].codigoSucursal,
+        //codigoSucursal: 69,
         municipio: "La Paz", //lugar de emisión de la factura
         telefono: "78873940", //nro de celular del punto de venta
         numeroFactura: parseInt(nroFactura), //ricardo dijo q se reinice por año
