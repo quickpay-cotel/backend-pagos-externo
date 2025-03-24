@@ -38,5 +38,24 @@ export class FuncionesFechas {
   
     return `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
   }
+  static generarNumeroUnico() {
+    // Obtener la fecha y hora actual
+    const now = new Date();
+
+    // Obtener los componentes de la fecha
+    const year = now.getFullYear();       // Año (4 dígitos)
+    const month = now.getMonth() + 1;     // Mes (de 1 a 12, se le suma 1 porque los meses empiezan en 0)
+    const day = now.getDate();            // Día del mes (de 1 a 31)
+
+    // Obtener la hora, minutos y segundos
+    const hours = now.getHours();         // Hora (de 0 a 23)
+    const minutes = now.getMinutes();     // Minutos (de 0 a 59)
+    const seconds = now.getSeconds();     // Segundos (de 0 a 59)
+
+    // Crear un número único concatenando los valores
+    const uniqueNumber = parseInt(`${year}${month.toString().padStart(2, '0')}${day.toString().padStart(2, '0')}${hours.toString().padStart(2, '0')}${minutes.toString().padStart(2, '0')}${seconds.toString().padStart(2, '0')}`, 10);
+
+    return uniqueNumber;
+}
   
 }

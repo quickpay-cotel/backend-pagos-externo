@@ -210,9 +210,9 @@ export class PagosService {
 
     // NOTIFICAR POR CORREO AL CLIENTE
     try {
-      const reciboPath = path.join(this.storePath + '/recibos/' + 'recibo-' + confirmaPagoQrDto.alias + '.pdf');
-      const facturaPathPdf = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '.pdf');
-      const facturaPathXml = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '.xml');
+      const reciboPath = path.join(this.storePath + '/recibos/' + 'recibo-' + confirmaPagoQrDto.alias + '_' + FuncionesFechas.generarNumeroUnico() +'.pdf');
+      const facturaPathPdf = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
+      const facturaPathXml = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
 
       // armar facturas cotel
       let facturasUrl = "";
@@ -476,7 +476,7 @@ export class PagosService {
         • JUANPEREZ
         • JPEREZ
         */
-        usuario: "QUICKPAY", //string
+        usuario: "QUICKPAY-ONLINE", //string
         details: []
       }
       let lstDetalleDeuda = [];
@@ -520,7 +520,7 @@ export class PagosService {
         datosFactura.details = lstDetalleDeuda;
 
         // GGENERAR FACTURA
-        let resFacturacion = await this.apiIllaService.generarFactura(datosFactura);
+        let resFacturacion = await this.apiIllaService.generarFacturaTelcom(datosFactura);
 
         // ALMACENAR XML Y PDF
         const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '.pdf');

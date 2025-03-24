@@ -80,12 +80,31 @@ export class ApiIllaService {
     }
   }
 
-  async generarFactura(body: any) {
+  async generarFacturaTelcom(body: any) {
     try {
       console.log("geenrando facuraaa");
       console.log(body);
       await this.generarToken();
       const response = await this.axiosInstance.post("/api/v1/telecoms", body, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      if (response.data.status) {
+        return response.data.result;
+      } else {
+        throw "Error generar factura";
+      }
+    } catch (error) {
+      throw "Error generar factura";
+    }
+  }
+  async generarFacturaAlquiler(body: any) {
+    try {
+      console.log("geenrando facuraaa");
+      console.log(body);
+      await this.generarToken();
+      const response = await this.axiosInstance.post("/api/v1/generalbills", body, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
@@ -163,4 +182,26 @@ export class ApiIllaService {
       console.error('Error al guardar el log en la base de datos:', error);
     }
   }
+
+  
+  async noteConciliacion(body: any) {
+    try {
+      console.log("nota de conciliacion");
+      console.log(body);
+      await this.generarToken();
+      const response = await this.axiosInstance.post("/api/v1/adjustments/conciliations", body, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      if (response.data.status) {
+        return response.data.result;
+      } else {
+        throw "Error generar factura";
+      }
+    } catch (error) {
+      throw "Error generar factura";
+    }
+  }
+
 }

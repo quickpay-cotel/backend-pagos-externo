@@ -4,11 +4,13 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Inject,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
+
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -26,17 +28,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     let responseBody;
 
-    // Modificar la respuesta en función del endpoint
-    if (endpoint === "/pagos/confirma-pago-qr") {
+    if (endpoint === "/pagos/confirma-pago-qr") { // para SIP
+      // esto es para SIP
       responseBody = {
         codigo: "9999",
         mensaje: message,
       };
-    } else {
+    }
+    else if (endpoint.startsWith("/cotel-caja/")) { // para cotel
+      responseBody= {
+        mensaje: "RESPUESTA_ERROR_FACTURA ",
+        mensajeDescripcion: message["message"]
+      };
+    }
+    else {
+      // esto es para los demas
       responseBody = {
         success: false,
-        message:
-          typeof message === "object" ? message["message"] || message : message,
+        message: typeof message === "object" ? message["message"] || message : message,
         timestamp: new Date().toISOString(),
       };
     }

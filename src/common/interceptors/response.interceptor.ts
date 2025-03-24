@@ -34,12 +34,18 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
         const request = context.switchToHttp().getRequest();
         const endpoint = request.route.path; // Obtienes el endpoint solicitado
 
-        if (endpoint === "/pagos/confirma-pago-qr") {
+        if (endpoint === "/pagos/confirma-pago-qr") { // para SIP
           return {
             codigo: "0000",
             mensaje: "Registro Exitoso",
           };
-        } else {
+        }else if (endpoint.startsWith("/cotel-caja/")){ // para cotel
+          return {
+            mensaje: data.respuesta,
+            result:data.datosFactura
+          };
+        } 
+        else {
           // Respuesta por defecto para otros endpoints
           return {
             success: true,

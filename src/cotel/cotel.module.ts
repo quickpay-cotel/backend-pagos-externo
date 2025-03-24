@@ -10,12 +10,14 @@ import { RepositoryModule } from "src/common/repository/repository.module";
 import { ExternalServiceModule } from "src/common/external-services/external-service.module";
 import { NotificationsGateway } from "src/notificaciones/notifications.gateway";
 import { EmailModule } from "src/common/correos/email.module";
+import { FacturacionCajaService } from "./facturacion.caja.service";
+import { FacturacionCajasController } from "./facturacion.caja.controller";
 @Module({
   imports: [CorreoModule, DatabaseModule, RepositoryModule, ExternalServiceModule, EmailModule],
-  controllers: [CotelController,PagosController],
+  controllers: [CotelController,PagosController,FacturacionCajasController],
   providers: [
     NotificationsGateway,
-    CotelService,PagosService],
+    CotelService,PagosService,FacturacionCajaService],
     exports:[CotelService,PagosService]
 })
 export class CotelModule { }
