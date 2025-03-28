@@ -91,7 +91,7 @@ export class ApiIllaService {
         },
       });
       if (response.data.status) {
-        return response.data.result;
+        return response.data;
       } else {
         throw "Error generar factura";
       }
@@ -110,7 +110,7 @@ export class ApiIllaService {
         },
       });
       if (response.data.status) {
-        return response.data.result;
+        return response.data;
       } else {
         throw "Error generar factura";
       }
@@ -187,6 +187,7 @@ export class ApiIllaService {
   async noteConciliacion(body: any) {
     try {
       console.log("nota de conciliacion");
+      console.log("/api/v1/adjustments/conciliations");
       console.log(body);
       await this.generarToken();
       const response = await this.axiosInstance.post("/api/v1/adjustments/conciliations", body, {
@@ -194,14 +195,37 @@ export class ApiIllaService {
           Authorization: `Bearer ${this.token}`,
         },
       });
+      console.log("respuesta");
+      console.log(response);
       if (response.data.status) {
-        return response.data.result;
+        return response.data;
       } else {
-        throw "Error generar factura";
+        throw "Error al generar Nota de Conciliacion";
       }
     } catch (error) {
-      throw "Error generar factura";
+      throw "Error al generar Nota de Conciliacion";
     }
   }
-
+  async noteCreditoDebito(body: any) {
+    try {
+      console.log("nota credito debido");
+      console.log("/api/v1/adjustments");
+      console.log(body);
+      await this.generarToken();
+      const response = await this.axiosInstance.post("/api/v1/adjustments", body, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      console.log("respuesta");
+      console.log(response);
+      if (response.data.status) {
+        return response.data;
+      } else {
+        throw "Error al generar Nota Credito Debito";
+      }
+    } catch (error) {
+      throw "Error al generar Nota Credito Debito";
+    }
+  }
 }

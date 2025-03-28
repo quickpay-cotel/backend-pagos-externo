@@ -10,7 +10,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { FuncionesFechas } from "src/common/utils/funciones.fechas";
-import { ConciliacionCajaNotasDto } from "./factura.caja.dto/conciliacion-caja-notas.dto";
+import { CajaConciliacionNotaDto } from "./factura.caja.dto/caja-conciliacion-nota.dto";
+import { CajaNotaCreditoDebitoDto } from "./factura.caja.dto/caja-nota-credito-debito.dto";
 
 @Injectable()
 export class FacturacionCajaService {
@@ -31,6 +32,7 @@ export class FacturacionCajaService {
       if (lstFacturaEmitida && lstFacturaEmitida.length) {
        return {
         respuesta:'REPUESTA_EXISTE_FACTURA_TELECOM', 
+        mensaje:'El '+facturaDeudaDto.identificador+' ya fue generado factura'
        }
       }
 
@@ -89,8 +91,8 @@ export class FacturacionCajaService {
         })
       }
       datosFactura.details = listaDetalle;
-      let resFacturacion = await this.apiIllaService.generarFacturaTelcom(datosFactura);
-
+      let resDataTelCom = await this.apiIllaService.generarFacturaTelcom(datosFactura);
+      let resFacturacion = resDataTelCom.result;
       // almacenamos facturas
       const filePathPdf = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
       const filePathXml = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
@@ -164,6 +166,7 @@ export class FacturacionCajaService {
 
       return {
         respuesta:'RESPUESTA_FACTURA_TELECOMUNICACIONES', 
+        mensaje:resDataTelCom.message,
         datosFactura:{
           identificador:resFacturacion.identificador,
           xml:resFacturacion.xml,
@@ -260,8 +263,8 @@ export class FacturacionCajaService {
         })
       }
       datosFactura.details = listaDetalle;
-      let resFacturacion = await this.apiIllaService.generarFacturaAlquiler(datosFactura);
-
+      let resDataAlquiler =  await this.apiIllaService.generarFacturaAlquiler(datosFactura);
+      let resFacturacion =  resDataAlquiler.result;
       // almacenamos facturas
       const filePathPdf = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
       const filePathXml = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
@@ -335,6 +338,7 @@ export class FacturacionCajaService {
 
       return {
         respuesta:'RESPUESTA_FACTURA_TELECOMUNICACIONES', 
+        mensaje:resDataAlquiler.message,
         datosFactura:{
           identificador:resFacturacion.identificador,
           xml:resFacturacion.xml,
@@ -356,7 +360,7 @@ export class FacturacionCajaService {
     }
   }
 
-  async notasConciliacion (conciliacionCajaNotasDto: ConciliacionCajaNotasDto){
+  async notasConciliacion (cajaConciliacionNotaDto: CajaConciliacionNotaDto){
     try {
 
       let productos = await this.apiIllaService.obtenerProductos();
@@ -369,7 +373,7 @@ export class FacturacionCajaService {
       }
 
       let detallesOrigen = [];
-      for(let objDetalleOrigen of conciliacionCajaNotasDto.detallesOrigen){
+      for(let objDetalleOrigen of cajaConciliacionNotaDto.detallesOrigen){
         detallesOrigen.push({
           nroItem:objDetalleOrigen.nroItem,
           actividadEconomica:objDetalleOrigen.actividadEconomica,
@@ -386,7 +390,7 @@ export class FacturacionCajaService {
         });
       }
       let detallesConciliacion = [];
-      for(let objDetalleConciliacion of conciliacionCajaNotasDto.detallesConciliacion){
+      for(let objDetalleConciliacion of cajaConciliacionNotaDto.detallesConciliacion){
         detallesConciliacion.push({
           nroItem:objDetalleConciliacion.nroItem,
           actividadEconomica:objDetalleConciliacion.actividadEconomica,
@@ -399,35 +403,113 @@ export class FacturacionCajaService {
         });
       }
       let notasConciliacion = {
-        identificador: conciliacionCajaNotasDto.identificador,
+        identificador: cajaConciliacionNotaDto.identificador,
         //identificador: puntosDeventas[0].identificador,
-        codigoDocumentoSector: conciliacionCajaNotasDto.codigoDocumentoSector,
-        codigoPuntoVenta:conciliacionCajaNotasDto.codigoPuntoVenta,
+        codigoDocumentoSector: cajaConciliacionNotaDto.codigoDocumentoSector,
+        codigoPuntoVenta:cajaConciliacionNotaDto.codigoPuntoVenta,
         //codigoPuntoVenta:puntosDeventas[0].codigoPuntoVenta,
-        codigoSucursal: conciliacionCajaNotasDto.codigoSucursal,
+        codigoSucursal: cajaConciliacionNotaDto.codigoSucursal,
         //codigoSucursal: puntosDeventas[0].codigoSucursal,
-        municipio:conciliacionCajaNotasDto.municipio,
-        telefono:conciliacionCajaNotasDto.telefono,
-        numeroNota:conciliacionCajaNotasDto.numeroNota,
-        nombreRazonSocial:conciliacionCajaNotasDto.nombreRazonSocial,
-        codigoTipoDocumentoIdentidad:conciliacionCajaNotasDto.codigoTipoDocumentoIdentidad,
-        numeroDocumento:conciliacionCajaNotasDto.numeroDocumento,
+        municipio:cajaConciliacionNotaDto.municipio,
+        telefono:cajaConciliacionNotaDto.telefono,
+        numeroNota:cajaConciliacionNotaDto.numeroNota,
+        nombreRazonSocial:cajaConciliacionNotaDto.nombreRazonSocial,
+        codigoTipoDocumentoIdentidad:cajaConciliacionNotaDto.codigoTipoDocumentoIdentidad,
+        numeroDocumento:cajaConciliacionNotaDto.numeroDocumento,
         complemento:"", // cotel no manda ese dato
-        codigoCliente:conciliacionCajaNotasDto.codigoCliente,
-        correoElectronico:conciliacionCajaNotasDto.correoElectronico,
-        codigoDocumentoSectorOriginal:conciliacionCajaNotasDto.codigoDocumentoSectorOriginal,
-        numeroFactura:conciliacionCajaNotasDto.numeroFactura,
-        numeroAutorizacionCuf:conciliacionCajaNotasDto.numeroAutorizacionCuf,
-        fechaEmisionFactura:conciliacionCajaNotasDto.fechaEmisionFactura,
-        montoTotalOriginal:conciliacionCajaNotasDto.montoTotalOriginal,
-        montoDescuentoAdicional:conciliacionCajaNotasDto.montoDescuentoAdicional,
-        codigoExcepcion:conciliacionCajaNotasDto.codigoExcepcion,
-        usuario:conciliacionCajaNotasDto.usuario,
+        codigoCliente:cajaConciliacionNotaDto.codigoCliente,
+        correoElectronico:cajaConciliacionNotaDto.correoElectronico,
+        codigoDocumentoSectorOriginal:cajaConciliacionNotaDto.codigoDocumentoSectorOriginal,
+        numeroFactura:cajaConciliacionNotaDto.numeroFactura,
+        numeroAutorizacionCuf:cajaConciliacionNotaDto.numeroAutorizacionCuf,
+        fechaEmisionFactura:cajaConciliacionNotaDto.fechaEmisionFactura,
+        montoTotalOriginal:cajaConciliacionNotaDto.montoTotalOriginal,
+        montoDescuentoAdicional:cajaConciliacionNotaDto.montoDescuentoAdicional,
+        codigoExcepcion:cajaConciliacionNotaDto.codigoExcepcion,
+        usuario:cajaConciliacionNotaDto.usuario,
         detallesOrigen:detallesOrigen,
         detallesConciliacion:detallesConciliacion
       }
 
       let resNotasConciliacion = await this.apiIllaService.noteConciliacion(notasConciliacion);
+      return resNotasConciliacion;
+
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.NOT_FOUND);
+    }
+  }
+  
+  async notasCreditoDebito (cajaNotaCreditoDebitoDto: CajaNotaCreditoDebitoDto){
+    try {
+
+      let productos = await this.apiIllaService.obtenerProductos();
+      if (!productos || productos.length == 0) {
+        throw new Error(`no se pudo obtener productos de SIAT`);
+      }
+      let puntosDeventas = await this.apiIllaService.obtenerPuntosVentas();
+      if (!puntosDeventas || puntosDeventas.length == 0) {
+        throw new Error(`no se pudo obtener puntos de venats de SIAT`);
+      }
+
+      let detalles = [];
+      for(let objDetalle of cajaNotaCreditoDebitoDto.details){
+        detalles.push({
+          nroItem: objDetalle.nroItem,
+          actividadEconomica: objDetalle.actividadEconomica,
+          codigoProductoSin: objDetalle.codigoProductoSin,
+          codigoProducto: objDetalle.codigoProducto,
+          descripcion: objDetalle.descripcion,
+          cantidad: objDetalle.cantidad,
+          unidadMedida: objDetalle.unidadMedida,
+          //unidadMedidaDescripcion: "Servicios", // esto cotel no manda
+          precioUnitario: objDetalle.precioUnitario,
+          montoDescuento: objDetalle.montoDescuento,
+          subTotal: objDetalle.subTotal,
+          codigoDetalleTransaccion: objDetalle.codigoDetalleTransaccion
+        });
+      }
+      let notasCreditoDebito = {
+        identificador: cajaNotaCreditoDebitoDto.identificador,
+        codigoDocumentoSector: cajaNotaCreditoDebitoDto.codigoDocumentoSector,
+        codigoPuntoVenta: cajaNotaCreditoDebitoDto.codigoPuntoVenta,
+        codigoSucursal: cajaNotaCreditoDebitoDto.codigoSucursal,
+        municipio: cajaNotaCreditoDebitoDto.municipio,
+        telefono: cajaNotaCreditoDebitoDto.telefono,
+        numeroNota: cajaNotaCreditoDebitoDto.numeroNota,
+        nombreRazonSocial: cajaNotaCreditoDebitoDto.nombreRazonSocial,
+        codigoTipoDocumentoIdentidad: cajaNotaCreditoDebitoDto.codigoTipoDocumentoIdentidad,
+        numeroDocumento: cajaNotaCreditoDebitoDto.numeroDocumento,
+        codigoCliente: cajaNotaCreditoDebitoDto.codigoCliente,
+        correoElectronico: cajaNotaCreditoDebitoDto.correoElectronico,
+        codigoDocumentoSectorOriginal: cajaNotaCreditoDebitoDto.codigoDocumentoSectorOriginal,
+        numeroFactura: cajaNotaCreditoDebitoDto.numeroFactura,
+        numeroAutorizacionCuf: cajaNotaCreditoDebitoDto.numeroAutorizacionCuf,
+        fechaEmisionFactura: cajaNotaCreditoDebitoDto.fechaEmisionFactura,
+        montoTotalOriginal: cajaNotaCreditoDebitoDto.montoTotalOriginal,
+        montoDescuentoAdicional: cajaNotaCreditoDebitoDto.montoDescuentoAdicional,
+        codigoExcepcion: cajaNotaCreditoDebitoDto.codigoExcepcion,
+        usuario: cajaNotaCreditoDebitoDto.usuario,
+        details:detalles
+      }
+
+      let resNotasCreditoDebito = await this.apiIllaService.noteCreditoDebito(notasCreditoDebito);
+      let resFacturaCreditoDebito= resNotasCreditoDebito.result;
+      return {
+        respuesta:'NOTA_DE_DEBITO_RESPUESTA_EMISION', 
+        mensaje:resNotasCreditoDebito.message,
+        datosFactura:{
+          identificador:resFacturaCreditoDebito.identificador,
+          xml:resFacturaCreditoDebito.xml,
+          pdf:resFacturaCreditoDebito.pdf,
+          urlVerificacion:resFacturaCreditoDebito.urlVerificacion,
+          urlVerificacionSin:resFacturaCreditoDebito.urlVerificacionSin,
+          leyenda:resFacturaCreditoDebito.leyenda,
+          leyendaEmision:resFacturaCreditoDebito.leyendaEmision,
+          cufd:resFacturaCreditoDebito.cufd,
+          cuf:resFacturaCreditoDebito.cuf,
+          fechaEmision:resFacturaCreditoDebito.fechaEmision
+        }
+      }
 
     } catch (error) {
       throw new HttpException(error, HttpStatus.NOT_FOUND);

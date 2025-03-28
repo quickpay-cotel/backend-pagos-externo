@@ -1,8 +1,7 @@
 import { IsBoolean, IsEmail, IsNumber, IsOptional, IsString, ValidateNested, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ConciliacionCajaDetalleConciliacionDto } from './conciliacion-caja-detallconciliacion.dto';
-import { ConciliacionCajaDetalleOrigenDto } from './conciliacion-caja-detalleorigen.dto';
-export class ConciliacionCajaNotasDto{
+
+export class CajaConciliacionNotaDto{
     @IsString()
     identificador: string;
   
@@ -73,3 +72,66 @@ export class ConciliacionCajaNotasDto{
     @Type(() => ConciliacionCajaDetalleConciliacionDto)
     detallesConciliacion: ConciliacionCajaDetalleConciliacionDto[];
 }
+export class ConciliacionCajaDetalleConciliacionDto{
+    @IsNumber()
+    nroItem: number;
+  
+    @IsString()
+    actividadEconomica: string;
+  
+    @IsNumber()
+    codigoProductoSin: number;
+  
+    @IsString()
+    codigoProducto: string;
+  
+    @IsString()
+    descripcion: string;
+  
+    @IsNumber()
+    montoOriginal: number;
+  
+    @IsNumber()
+    montoFinal: number;
+  
+    @IsNumber()
+    montoConciliado: number;
+  }
+  export class ConciliacionCajaDetalleOrigenDto{
+
+    @IsNumber()
+    nroItem: number;
+  
+    @IsString()
+    actividadEconomica: string;
+  
+    @IsNumber()
+    codigoProductoSin: number;
+  
+    @IsString()
+    codigoProducto: string;
+  
+    @IsString()
+    descripcion: string;
+  
+    @IsNumber()
+    cantidad: number;
+  
+    @IsNumber()
+    unidadMedida: number;
+  
+    @IsString()
+    unidadMedidaDescripcion: string;
+  
+    @IsNumber()
+    precioUnitario: number;
+  
+    @IsNumber()
+    montoDescuento: number;
+  
+    @IsNumber()
+    subTotal: number;
+  
+    @IsNumber()
+    codigoDetalleTransaccion: number;
+  }

@@ -42,6 +42,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
         }else if (endpoint.startsWith("/cotel-caja/")){ // para cotel
           return {
             mensaje: data.respuesta,
+            mensajeDescripcion:data.mensaje,
             result:data.datosFactura
           };
         } 
