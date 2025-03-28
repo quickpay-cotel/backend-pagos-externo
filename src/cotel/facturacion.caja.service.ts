@@ -49,7 +49,11 @@ export class FacturacionCajaService {
 
       let tipoDoc = 0;
       if (facturaDeudaDto.codigo_tipo_documento == 'CI') tipoDoc = 1;
+      if (facturaDeudaDto.codigo_tipo_documento == 'CEX') tipoDoc = 2;
+      if (facturaDeudaDto.codigo_tipo_documento == 'PAS') tipoDoc = 3;
+      if (facturaDeudaDto.codigo_tipo_documento == 'OD') tipoDoc = 4;
       if (facturaDeudaDto.codigo_tipo_documento == 'NIT') tipoDoc = 5;
+      
 
       let datosFactura = {
         identificador: puntosDeventas[0].identificador,
@@ -66,13 +70,13 @@ export class FacturacionCajaService {
         codigoTipoDocumentoIdentidad: tipoDoc, //int
         numeroDocumento: facturaDeudaDto.numero_documento,  //string
         codigoCliente: facturaDeudaDto.codigo_cliente,
-        correoElectronico: facturaDeudaDto.email_cliente, //string
+        correoElectronico: facturaDeudaDto.email_cliente? facturaDeudaDto.email_cliente:"sinemailcotel@quickpay.com.bo" , //string
         codigoMetodoPago: 1, // EFECTIVO
         codigoMoneda: 1,  // BS
         tipoCambio: 1, // CUANDO ES BS SIEMPRE MANDAR 1
         montoGiftCard: 0,  // SI ES ATRJETA RECIEN MANDAR VALOR
         descuentoAdicional: facturaDeudaDto.descuento_global,
-        codigoExcepcion: false, // El NIT debe ser validado en la transacción de emisión
+        codigoExcepcion: true, // El NIT debe ser validado en la transacción de emisión
         usuario: "QUICKPAY-CAJAS",
         details: []
       }
@@ -216,9 +220,14 @@ export class FacturacionCajaService {
 
       let nroFactura = await this.cotelComprobanteFacturaRepository.findNroFactura();
       nroFactura = String(nroFactura).split('-')[1]
+      
       let tipoDoc = 0;
       if (facturaDeudaDto.codigo_tipo_documento == 'CI') tipoDoc = 1;
+      if (facturaDeudaDto.codigo_tipo_documento == 'CEX') tipoDoc = 2;
+      if (facturaDeudaDto.codigo_tipo_documento == 'PAS') tipoDoc = 3;
+      if (facturaDeudaDto.codigo_tipo_documento == 'OD') tipoDoc = 4;
       if (facturaDeudaDto.codigo_tipo_documento == 'NIT') tipoDoc = 5;
+
 
       let datosFactura = {
         identificador: puntosDeventas[0].identificador,
@@ -239,12 +248,12 @@ export class FacturacionCajaService {
         codigoTipoDocumentoIdentidad: tipoDoc, //int
         numeroDocumento: facturaDeudaDto.numero_documento,  //string
         codigoCliente: facturaDeudaDto.codigo_cliente,
-        correoElectronico: facturaDeudaDto.email_cliente, //string
+        correoElectronico: facturaDeudaDto.email_cliente ? facturaDeudaDto.email_cliente:"sinemailcotel@quickpay.com.bo", //string
         codigoMetodoPago: 1, // EFECTIVO
         codigoMoneda: 1,  // BS
         tipoCambio: 1, // CUANDO ES BS SIEMPRE MANDAR 1
         descuentoAdicional: facturaDeudaDto.descuento_global,
-        codigoExcepcion: false, // El NIT debe ser validado en la transacción de emisión
+        codigoExcepcion: true, // El NIT debe ser validado en la transacción de emisión
         usuario: "QUICKPAY-CAJAS",
         details: []
       }
@@ -431,8 +440,25 @@ export class FacturacionCajaService {
         detallesConciliacion:detallesConciliacion
       }
 
-      let resNotasConciliacion = await this.apiIllaService.noteConciliacion(notasConciliacion);
-      return resNotasConciliacion;
+      let restConciliacion = await this.apiIllaService.noteConciliacion(notasConciliacion);
+
+      let resNotasConciliacion = restConciliacion.result;
+      return {
+        respuesta:'NOTA_DE_DEBITO_RESPUESTA_EMISION', 
+        mensaje:restConciliacion.message,
+        datosFactura:{
+          identificador:resNotasConciliacion.identificador,
+          xml:resNotasConciliacion.xml,
+          pdf:resNotasConciliacion.pdf,
+          urlVerificacion:resNotasConciliacion.urlVerificacion,
+          urlVerificacionSin:resNotasConciliacion.urlVerificacionSin,
+          leyenda:resNotasConciliacion.leyenda,
+          leyendaEmision:resNotasConciliacion.leyendaEmision,
+          cufd:resNotasConciliacion.cufd,
+          cuf:resNotasConciliacion.cuf,
+          fechaEmision:resNotasConciliacion.fechaEmision
+        }
+      }
 
     } catch (error) {
       throw new HttpException(error, HttpStatus.NOT_FOUND);
