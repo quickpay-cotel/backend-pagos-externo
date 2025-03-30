@@ -16,15 +16,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-    const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : "An internal server error occurred";
-    const endpoint = request.route?.path; // Obtener el endpoint solicitado
+    const status = exception instanceof HttpException? exception.getStatus(): HttpStatus.INTERNAL_SERVER_ERROR;
+    const message = exception instanceof HttpException? exception.getResponse(): "An internal server error occurred";
+    const endpoint = request.route?.path; 
 
     let responseBody;
 
@@ -35,17 +29,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
         mensaje: message,
       };
     }
-    else if (endpoint.startsWith("/cotel-caja/")) { // para cotel
+    /*else if (endpoint.startsWith("/cotel-caja/")) { // para cotel
       responseBody= {
         mensaje: "RESPUESTA_ERROR ",
         mensajeDescripcion: message["message"]
       };
-    }
+    }*/
     else {
       // esto es para los demas
       responseBody = {
         success: false,
         message: typeof message === "object" ? message["message"] || message : message,
+        
         timestamp: new Date().toISOString(),
       };
     }

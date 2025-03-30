@@ -29,12 +29,23 @@ export class FacturacionCajaService {
   async facturaTelcom(facturaDeudaDto: FacturaDeudaDto) {
     try {
 
+
+
       // veriicar si el identificador ya ha generado factura
       let lstFacturaEmitida = await this.cotelFacturasCajaRepository.facturaEmitidaByIdentificador(facturaDeudaDto.identificador);
       if (lstFacturaEmitida && lstFacturaEmitida.length) {
         return {
-          respuesta: 'REPUESTA_EXISTE_FACTURA_TELECOM',
-          mensaje: 'El identificador ' + facturaDeudaDto.identificador + ' ya fue generado factura'
+          message: "Ya se ha registrado anteriormente una factura con el identificador: "+facturaDeudaDto.identificador,
+          result: {
+            identificador: lstFacturaEmitida[0].identificador,
+            urlVerificacion: lstFacturaEmitida[0].url_verificacion,
+            urlVerificacionSin: lstFacturaEmitida[0].url_verificacion_sin,
+            leyenda: lstFacturaEmitida[0].leyenda,
+            leyendaEmision: lstFacturaEmitida[0].leyenda_emision,
+            cufd: lstFacturaEmitida[0].cufd,
+            cuf: lstFacturaEmitida[0].cuf,
+            fechaEmision: lstFacturaEmitida[0].fecha_emision
+          }
         }
       }
 
@@ -89,7 +100,7 @@ export class FacturacionCajaService {
       for (let deuda of facturaDeudaDto.lineas_detalle_deuda) {
         let productoSIAT = productos.filter(r => r.codProductoEmpresa == deuda.codigo_producto);
         if (productoSIAT.length != 1) {
-          throw new Error(`el producto ${deuda.codigo_producto} no se encuentra registrado en SIAT`);
+          throw new Error(`el producto ${deuda.codigo_producto} no se encuentra registrado en SIAT, o el producto se encuentra mal registrado`);
         }
         listaDetalle.push({
           empresaProductoId: productoSIAT[0].empresaProductoId, // el SIN siempre va retornar un producto
@@ -101,7 +112,7 @@ export class FacturacionCajaService {
       }
       datosFactura.details = listaDetalle;
       let resDataTelCom = await this.apiIllaService.generarFacturaTelcom(datosFactura);
-      if(!resDataTelCom.status){
+      if (!resDataTelCom.status) {
         throw new Error(resDataTelCom.message);
       }
 
@@ -178,9 +189,8 @@ export class FacturacionCajaService {
       });
 
       return {
-        respuesta: 'RESPUESTA_FACTURA_TELECOMUNICACIONES',
-        mensaje: resDataTelCom.message,
-        datosFactura: {
+        message: resDataTelCom.message,
+        result: {
           identificador: resFacturacion.identificador,
           xml: resFacturacion.xml,
           pdf: resFacturacion.pdf,
@@ -207,11 +217,19 @@ export class FacturacionCajaService {
       // veriicar si el identificador ya ha generado factura
       let lstFacturaEmitida = await this.cotelFacturasCajaRepository.facturaEmitidaByIdentificador(facturaDeudaDto.identificador);
       if (lstFacturaEmitida && lstFacturaEmitida.length) {
-        //throw new Error(`REPUESTA_EXISTE_FACTURA_TELECOM`);
         return {
-          respuesta: 'REPUESTA_EXISTE_FACTURA_TELECOM',
+          message: "Ya se ha registrado anteriormente una factura con el identificador: "+facturaDeudaDto.identificador,
+          result: {
+            identificador: lstFacturaEmitida[0].identificador,
+            urlVerificacion: lstFacturaEmitida[0].url_verificacion,
+            urlVerificacionSin: lstFacturaEmitida[0].url_verificacion_sin,
+            leyenda: lstFacturaEmitida[0].leyenda,
+            leyendaEmision: lstFacturaEmitida[0].leyenda_emision,
+            cufd: lstFacturaEmitida[0].cufd,
+            cuf: lstFacturaEmitida[0].cuf,
+            fechaEmision: lstFacturaEmitida[0].fecha_emision
+          }
         }
-
       }
 
       let productos = await this.apiIllaService.obtenerProductos();
@@ -271,7 +289,7 @@ export class FacturacionCajaService {
       for (let deuda of facturaDeudaDto.lineas_detalle_deuda) {
         let productoSIAT = productos.filter(r => r.codProductoEmpresa == deuda.codigo_producto);
         if (productoSIAT.length != 1) {
-          throw new Error(`el producto ${deuda.codigo_producto} no se encuentra registrado en SIAT`);
+          throw new Error(`el producto ${deuda.codigo_producto} no se encuentra registrado en SIAT, o el producto se encuentra mal registrado`);
         }
         listaDetalle.push({
           empresaProductoId: productoSIAT[0].empresaProductoId, // el SIN siempre va retornar un producto
@@ -283,7 +301,7 @@ export class FacturacionCajaService {
       }
       datosFactura.details = listaDetalle;
       let resDataAlquiler = await this.apiIllaService.generarFacturaAlquiler(datosFactura);
-      if(!resDataAlquiler.status){
+      if (!resDataAlquiler.status) {
         throw new Error(resDataAlquiler.message);
       }
 
@@ -360,9 +378,8 @@ export class FacturacionCajaService {
       });
 
       return {
-        respuesta: 'RESPUESTA_FACTURA_TELECOMUNICACIONES',
-        mensaje: resDataAlquiler.message,
-        datosFactura: {
+        message: resDataAlquiler.message,
+        result: {
           identificador: resFacturacion.identificador,
           xml: resFacturacion.xml,
           pdf: resFacturacion.pdf,
@@ -377,8 +394,6 @@ export class FacturacionCajaService {
       }
 
     } catch (error) {
-
-      //throw new HttpException(error?.message=='REPUESTA_EXISTE_FACTURA_TELECOM'?error.message:'RESPUESTA_ERROR_FACTURA', HttpStatus.NOT_FOUND);
       throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
   }
@@ -455,15 +470,14 @@ export class FacturacionCajaService {
       }
 
       let restConciliacion = await this.apiIllaService.notaConciliacion(notasConciliacion);
-      if(!restConciliacion.status){
+      if (!restConciliacion.status) {
         throw new Error(restConciliacion.message);
       }
 
       let resNotasConciliacion = restConciliacion.result;
       return {
-        respuesta: 'NOTA_DE_DEBITO_RESPUESTA_EMISION',
-        mensaje: restConciliacion.message,
-        datosFactura: {
+        message: restConciliacion.message,
+        result: {
           identificador: resNotasConciliacion.identificador,
           xml: resNotasConciliacion.xml,
           pdf: resNotasConciliacion.pdf,
@@ -477,6 +491,7 @@ export class FacturacionCajaService {
         }
       }
 
+
     } catch (error) {
       throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
@@ -484,6 +499,8 @@ export class FacturacionCajaService {
 
   async notasCreditoDebito(cajaNotaCreditoDebitoDto: CajaNotaCreditoDebitoDto) {
     try {
+
+      // hay q validar por nro autorizaiconn si esta factura ya se ha emitido nota ccredito debidooo...
 
       let productos = await this.apiIllaService.obtenerProductos();
       if (!productos || productos.length == 0) {
@@ -536,16 +553,15 @@ export class FacturacionCajaService {
       }
 
       let resNotasCreditoDebito = await this.apiIllaService.notaCreditoDebito(notasCreditoDebito);
-      
-      if(!resNotasCreditoDebito.status){
+
+      if (!resNotasCreditoDebito.status) {
         throw new Error(resNotasCreditoDebito.message);
       }
 
       let resFacturaCreditoDebito = resNotasCreditoDebito.result;
       return {
-        respuesta: 'NOTA_DE_DEBITO_RESPUESTA_EMISION',
-        mensaje: resNotasCreditoDebito.message,
-        datosFactura: {
+        message: resNotasCreditoDebito.message,
+        result: {
           identificador: resFacturaCreditoDebito.identificador,
           xml: resFacturaCreditoDebito.xml,
           pdf: resFacturaCreditoDebito.pdf,
@@ -567,6 +583,11 @@ export class FacturacionCajaService {
   async notaAnulacion(notaAnulacionDto: NotaAnulacionDto) {
     try {
 
+      let motivoString = "";
+      if(notaAnulacionDto.codigoMotivo==1)motivoString="FACTURA MAL EMITIDA";
+      if(notaAnulacionDto.codigoMotivo==3)motivoString="DATOS DE EMISIÓN INCORRECTOS";
+      if(notaAnulacionDto.codigoMotivo==4)motivoString="FACTURA DEVUELTA";
+
       let puntosDeventas = await this.apiIllaService.obtenerPuntosVentas();
       if (!puntosDeventas || puntosDeventas.length == 0) {
         throw new Error(`no se pudo obtener puntos de venats de SIAT`);
@@ -579,14 +600,14 @@ export class FacturacionCajaService {
         codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
         codigoSucursal: puntosDeventas[0].codigoSucursal,
         codigoMotivo: notaAnulacionDto.codigoMotivo,
+        motivo : motivoString,
         cuf: notaAnulacionDto.cuf
       }
       let resAnulacion = await this.apiIllaService.notaAnulacion(payload);
-      if(!resAnulacion.status){
+      if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
       return {
-        respuesta: 'NOTA_ANULACION_EXITOSA',
         mensaje: resAnulacion.message
       }
 
@@ -594,7 +615,7 @@ export class FacturacionCajaService {
       throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
   }
-  
+
   async facturaAlquilerAnulacion(facturaAnulacionDto: FacturaAnulacionDto) {
     try {
 
@@ -605,19 +626,19 @@ export class FacturacionCajaService {
       let payload =
       {
         identificador: puntosDeventas[0].identificador,
-        identificadorNota: notaAnulacionDto.identificadorNota,
-        nit: notaAnulacionDto.nit,
+        identificadorFactura: facturaAnulacionDto.identificador,
+        nit: facturaAnulacionDto.nit,
         codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
         codigoSucursal: puntosDeventas[0].codigoSucursal,
-        codigoMotivo: notaAnulacionDto.codigoMotivo,
-        cuf: notaAnulacionDto.cuf
+        codigoMotivo: facturaAnulacionDto.codigoMotivo,
+        cuf: facturaAnulacionDto.cuf
       }
-      let resAnulacion = await this.apiIllaService.notaAnulacion(payload);
-      if(!resAnulacion.status){
+      let resAnulacion = await this.apiIllaService.facturaAlquilerAnulacion(payload);
+      if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
       return {
-        respuesta: 'NOTA_ANULACION_EXITOSA',
+        respuesta: 'FACTURA_ANULACION_EXITOSA',
         mensaje: resAnulacion.message
       }
 
@@ -625,7 +646,7 @@ export class FacturacionCajaService {
       throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
   }
-  
+
   async facturaTelcomAnulacion(facturaAnulacionDto: FacturaAnulacionDto) {
     try {
 
@@ -635,16 +656,16 @@ export class FacturacionCajaService {
       }
       let payload =
       {
-          identificador: puntosDeventas[0].identificador,
-          identificadorFactura: facturaAnulacionDto.identificador,
-          nit: facturaAnulacionDto.nit,
-          codigoPuntoVenta: 0,
-          codigoSucursal: 0,
-          codigoMotivo: facturaAnulacionDto.codigoMotivo,
-          cuf: facturaAnulacionDto.cuf
+        identificador: puntosDeventas[0].identificador,
+        identificadorFactura: facturaAnulacionDto.identificador,
+        nit: facturaAnulacionDto.nit,
+        codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
+        codigoSucursal: puntosDeventas[0].codigoSucursal,
+        codigoMotivo: facturaAnulacionDto.codigoMotivo,
+        cuf: facturaAnulacionDto.cuf
       }
       let resAnulacion = await this.apiIllaService.facturaTelcomAnulacion(payload);
-      if(!resAnulacion.status){
+      if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
       return {

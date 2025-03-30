@@ -39,19 +39,19 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
             codigo: "0000",
             mensaje: "Registro Exitoso",
           };
-        }else if (endpoint.startsWith("/cotel-caja/")){ // para cotel
-          return {
-            mensaje: data.respuesta,
-            mensajeDescripcion:data.mensaje,
-            result:data.datosFactura
-          };
-        } 
+        }
+        /* else if (endpoint.startsWith("/cotel-caja/")){ // para cotel
+           return {
+             mensaje: data.respuesta,
+             mensajeDescripcion:data.mensaje,
+             result:data.datosFactura
+           };
+         } */
         else {
-          // Respuesta por defecto para otros endpoints
           return {
             success: true,
-            message: "Exito",
-            result: data,
+            message: data.message,
+            result: data.result,
             timestamp: new Date().toISOString(),
           };
         }

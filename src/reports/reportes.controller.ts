@@ -1,8 +1,9 @@
 import { Controller, Get, Res, Query, Param } from '@nestjs/common';
 import { Response } from 'express';
-import { ReportesService } from './reportes.service';
-import { PagosService } from 'src/cotel/pagos.service';
+
 import * as path from 'path'; // Asegúrate de tener esta importación
+
+
 @Controller('reportes')
 export class ReportesController {
 

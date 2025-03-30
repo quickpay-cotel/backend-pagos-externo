@@ -16,7 +16,7 @@ export class NotaAnulacionDto {
     @IsString()
     cuf: string;
 
-    @IsString()
-    motivo: string;
+    /*@IsString()
+    motivo: string;*/
     
 }

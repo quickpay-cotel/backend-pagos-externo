@@ -10,6 +10,8 @@ import { ConfirmaPagoQrDto } from "./dto/confirma-pago-qr.dto";
 import { PagosService } from "./pagos.service";
 import { EmailService } from "src/common/correos/email.service";
 import { BasicAuthGuard } from "src/config/basic-auth.guard";
+
+
 @Controller("pagos")
 export class PagosController {
   constructor(private readonly pagosService: PagosService,

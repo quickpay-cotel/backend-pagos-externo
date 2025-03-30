@@ -13,6 +13,7 @@ import { CotelService } from "./cotel.service";
 import {DeudasDto } from "./dto/deudas.dto";
 import { ConsultaDeudasDto } from "./dto/consulta-deudas.dto";
 
+
 @Controller("cotel")
 export class CotelController {
   constructor(private readonly cotelService: CotelService,

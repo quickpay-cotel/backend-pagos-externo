@@ -24,7 +24,7 @@ export class CotelFacturasCajaRepository {
     return result;
   }
   async facturaEmitidaByIdentificador(pIdentificador): Promise<any> {
-    const query = ` select * from cotel.facturas_caja fc 
+    const query = ` select fec.* from cotel.facturas_caja fc 
 inner join cotel.facturas_emitidas_caja fec on fc.factura_caja_id = fec.factura_caja_id and fec.estado_id = 1000
 where fc.estado_id = 1000 and fc.identificador = $1`;
     const params = [pIdentificador];

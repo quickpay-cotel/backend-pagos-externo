@@ -5,6 +5,7 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import { ValidationPipe } from "@nestjs/common";
 import { HttpExceptionFilter } from "./common/filters/all-exceptions.filter";
 import * as fs from "fs";
+
 dotenv.config(); // Carga las variables de entorno
 async function bootstrap() {
   let app;
