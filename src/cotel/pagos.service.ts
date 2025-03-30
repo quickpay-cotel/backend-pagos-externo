@@ -521,7 +521,10 @@ export class PagosService {
 
         // GGENERAR FACTURA
         let resFacturacion = await this.apiIllaService.generarFacturaTelcom(datosFactura);
-
+        if(!resFacturacion.status){
+          throw new Error(resFacturacion.message);
+        }
+        resFacturacion = resFacturacion.result;
         // ALMACENAR XML Y PDF
         const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '.pdf');
         const filePathXml = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '.xml');

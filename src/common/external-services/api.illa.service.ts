@@ -81,41 +81,42 @@ export class ApiIllaService {
   }
 
   async generarFacturaTelcom(body: any) {
+
+
     try {
-      console.log("geenrando facuraaa");
-      console.log(body);
       await this.generarToken();
       const response = await this.axiosInstance.post("/api/v1/telecoms", body, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
       });
-      if (response.data.status) {
-        return response.data;
-      } else {
-        throw "Error generar factura";
-      }
+      return response.data; // Devuelve el payload en caso de éxito
     } catch (error) {
-      throw "Error generar factura";
+      // Capturar el payload del error si existe
+      if (error.response) {
+        return error.response.data; // Devuelve el body de la respuesta con error (400, 404, etc.)
+      } else {
+        throw new Error("Error desconocido al generar Factura Telecomunicaciones");
+      }
     }
+
   }
   async generarFacturaAlquiler(body: any) {
     try {
-      console.log("geenrando facuraaa");
-      console.log(body);
       await this.generarToken();
       const response = await this.axiosInstance.post("/api/v1/generalbills", body, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
       });
-      if (response.data.status) {
-        return response.data;
-      } else {
-        throw "Error generar factura";
-      }
+      return response.data; // Devuelve el payload en caso de éxito
     } catch (error) {
-      throw "Error generar factura";
+      // Capturar el payload del error si existe
+      if (error.response) {
+        return error.response.data; // Devuelve el body de la respuesta con error (400, 404, etc.)
+      } else {
+        throw new Error("Error desconocido al generar Factura Alquiler");
+      }
     }
   }
   async obtenerProductos() {
@@ -184,48 +185,102 @@ export class ApiIllaService {
   }
 
   
-  async noteConciliacion(body: any) {
+  async notaConciliacion(body: any) {
     try {
-      console.log("nota de conciliacion");
-      console.log("/api/v1/adjustments/conciliations");
-      console.log(body);
       await this.generarToken();
       const response = await this.axiosInstance.post("/api/v1/adjustments/conciliations", body, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
       });
-      console.log("respuesta");
-      console.log(response);
-      if (response.data.status) {
-        return response.data;
-      } else {
-        throw "Error al generar Nota de Conciliacion";
-      }
+      return response.data; // Devuelve el payload en caso de éxito
     } catch (error) {
-      throw "Error al generar Nota de Conciliacion";
+      // Capturar el payload del error si existe
+      if (error.response) {
+        return error.response.data; // Devuelve el body de la respuesta con error (400, 404, etc.)
+      } else {
+        throw new Error("Error desconocido al generar Nota Conciliación");
+      }
     }
   }
-  async noteCreditoDebito(body: any) {
+  async notaCreditoDebito(body: any) {
     try {
-      console.log("nota credito debido");
-      console.log("/api/v1/adjustments");
-      console.log(body);
       await this.generarToken();
       const response = await this.axiosInstance.post("/api/v1/adjustments", body, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
       });
-      console.log("respuesta");
-      console.log(response);
-      if (response.data.status) {
-        return response.data;
-      } else {
-        throw "Error al generar Nota Credito Debito";
-      }
+      return response.data; // Devuelve el payload en caso de éxito
     } catch (error) {
-      throw "Error al generar Nota Credito Debito";
+      // Capturar el payload del error si existe
+      if (error.response) {
+        return error.response.data; // Devuelve el body de la respuesta con error (400, 404, etc.)
+      } else {
+        throw new Error("Error desconocido al generar Nota Credito Debito");
+      }
+    }
+
+  }
+  async notaAnulacion(body: any) {
+    try {
+      await this.generarToken();
+      const response = await this.axiosInstance.delete("/api/v1/adjustments", {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+        data: body, // Pasamos el body correctamente
+      });
+      
+      return response.data; // Devuelve el payload en caso de éxito
+    } catch (error) {
+      // Capturar el payload del error si existe
+      if (error.response) {
+        return error.response.data; // Devuelve el body de la respuesta con error (400, 404, etc.)
+      } else {
+        throw new Error("Error desconocido al anular NOTA");
+      }
     }
   }
+  async facturaAlquilerAnulacion(body: any) {
+    try {
+      await this.generarToken();
+      const response = await this.axiosInstance.delete("/api/v1/generalbills", {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+        data: body, // Pasamos el body correctamente
+      });
+      
+      return response.data; // Devuelve el payload en caso de éxito
+    } catch (error) {
+      // Capturar el payload del error si existe
+      if (error.response) {
+        return error.response.data; // Devuelve el body de la respuesta con error (400, 404, etc.)
+      } else {
+        throw new Error("Error desconocido al anular FACTURA ALQUILER");
+      }
+    }
+  }
+  async facturaTelcomAnulacion(body: any) {
+    try {
+      await this.generarToken();
+      const response = await this.axiosInstance.delete("/api/v1/telecoms", {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+        data: body, // Pasamos el body correctamente
+      });
+      
+      return response.data; // Devuelve el payload en caso de éxito
+    } catch (error) {
+      // Capturar el payload del error si existe
+      if (error.response) {
+        return error.response.data; // Devuelve el body de la respuesta con error (400, 404, etc.)
+      } else {
+        throw new Error("Error desconocido al anular FACTURA TELCOM");
+      }
+    }
+  }
+  
 }

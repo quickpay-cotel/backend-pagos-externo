@@ -37,7 +37,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
     else if (endpoint.startsWith("/cotel-caja/")) { // para cotel
       responseBody= {
-        mensaje: "RESPUESTA_ERROR_FACTURA ",
+        mensaje: "RESPUESTA_ERROR ",
         mensajeDescripcion: message["message"]
       };
     }

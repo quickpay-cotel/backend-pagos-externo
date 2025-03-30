@@ -1,3 +1,4 @@
+import { FacturaAnulacionDto } from './factura.caja.dto/factura-anulacion.dto';
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { IDatabase } from "pg-promise";
 import { FacturaDeudaDto } from "./factura.caja.dto/factura-caja-deuda.dto";
@@ -12,6 +13,7 @@ import * as path from 'path';
 import { FuncionesFechas } from "src/common/utils/funciones.fechas";
 import { CajaConciliacionNotaDto } from "./factura.caja.dto/caja-conciliacion-nota.dto";
 import { CajaNotaCreditoDebitoDto } from "./factura.caja.dto/caja-nota-credito-debito.dto";
+import { NotaAnulacionDto } from "./factura.caja.dto/nota-anulacion.dto";
 
 @Injectable()
 export class FacturacionCajaService {
@@ -30,10 +32,10 @@ export class FacturacionCajaService {
       // veriicar si el identificador ya ha generado factura
       let lstFacturaEmitida = await this.cotelFacturasCajaRepository.facturaEmitidaByIdentificador(facturaDeudaDto.identificador);
       if (lstFacturaEmitida && lstFacturaEmitida.length) {
-       return {
-        respuesta:'REPUESTA_EXISTE_FACTURA_TELECOM', 
-        mensaje:'El '+facturaDeudaDto.identificador+' ya fue generado factura'
-       }
+        return {
+          respuesta: 'REPUESTA_EXISTE_FACTURA_TELECOM',
+          mensaje: 'El identificador ' + facturaDeudaDto.identificador + ' ya fue generado factura'
+        }
       }
 
       let productos = await this.apiIllaService.obtenerProductos();
@@ -45,7 +47,9 @@ export class FacturacionCajaService {
         throw new Error(`no se pudo obtener puntos de venats de SIAT`);
       }
 
+      //let nroFactura = await this.cotelComprobanteFacturaRepository.findNroFactura();
       let nroFactura = await this.cotelComprobanteFacturaRepository.findNroFactura();
+      nroFactura = String(nroFactura).split('-')[1]
 
       let tipoDoc = 0;
       if (facturaDeudaDto.codigo_tipo_documento == 'CI') tipoDoc = 1;
@@ -53,7 +57,7 @@ export class FacturacionCajaService {
       if (facturaDeudaDto.codigo_tipo_documento == 'PAS') tipoDoc = 3;
       if (facturaDeudaDto.codigo_tipo_documento == 'OD') tipoDoc = 4;
       if (facturaDeudaDto.codigo_tipo_documento == 'NIT') tipoDoc = 5;
-      
+
 
       let datosFactura = {
         identificador: puntosDeventas[0].identificador,
@@ -70,7 +74,8 @@ export class FacturacionCajaService {
         codigoTipoDocumentoIdentidad: tipoDoc, //int
         numeroDocumento: facturaDeudaDto.numero_documento,  //string
         codigoCliente: facturaDeudaDto.codigo_cliente,
-        correoElectronico: facturaDeudaDto.email_cliente? facturaDeudaDto.email_cliente:"sinemailcotel@quickpay.com.bo" , //string
+        //correoElectronico: facturaDeudaDto.email_cliente? facturaDeudaDto.email_cliente:"sinemailcotel@quickpay.com.bo" , //string
+        correoElectronico: facturaDeudaDto.email_cliente ?? "sinemailcotel@quickpay.com.bo",
         codigoMetodoPago: 1, // EFECTIVO
         codigoMoneda: 1,  // BS
         tipoCambio: 1, // CUANDO ES BS SIEMPRE MANDAR 1
@@ -96,6 +101,10 @@ export class FacturacionCajaService {
       }
       datosFactura.details = listaDetalle;
       let resDataTelCom = await this.apiIllaService.generarFacturaTelcom(datosFactura);
+      if(!resDataTelCom.status){
+        throw new Error(resDataTelCom.message);
+      }
+
       let resFacturacion = resDataTelCom.result;
       // almacenamos facturas
       const filePathPdf = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
@@ -169,24 +178,24 @@ export class FacturacionCajaService {
       });
 
       return {
-        respuesta:'RESPUESTA_FACTURA_TELECOMUNICACIONES', 
-        mensaje:resDataTelCom.message,
-        datosFactura:{
-          identificador:resFacturacion.identificador,
-          xml:resFacturacion.xml,
-          pdf:resFacturacion.pdf,
-          urlVerificacion:resFacturacion.urlVerificacion,
-          urlVerificacionSin:resFacturacion.urlVerificacionSin,
-          leyenda:resFacturacion.leyenda,
-          leyendaEmision:resFacturacion.leyendaEmision,
-          cufd:resFacturacion.cufd,
-          cuf:resFacturacion.cuf,
-          fechaEmision:resFacturacion.fechaEmision
+        respuesta: 'RESPUESTA_FACTURA_TELECOMUNICACIONES',
+        mensaje: resDataTelCom.message,
+        datosFactura: {
+          identificador: resFacturacion.identificador,
+          xml: resFacturacion.xml,
+          pdf: resFacturacion.pdf,
+          urlVerificacion: resFacturacion.urlVerificacion,
+          urlVerificacionSin: resFacturacion.urlVerificacionSin,
+          leyenda: resFacturacion.leyenda,
+          leyendaEmision: resFacturacion.leyendaEmision,
+          cufd: resFacturacion.cufd,
+          cuf: resFacturacion.cuf,
+          fechaEmision: resFacturacion.fechaEmision
         }
       }
 
     } catch (error) {
-      
+
       throw new HttpException(error, HttpStatus.NOT_FOUND);
 
     }
@@ -200,8 +209,8 @@ export class FacturacionCajaService {
       if (lstFacturaEmitida && lstFacturaEmitida.length) {
         //throw new Error(`REPUESTA_EXISTE_FACTURA_TELECOM`);
         return {
-          respuesta:'REPUESTA_EXISTE_FACTURA_TELECOM', 
-         }
+          respuesta: 'REPUESTA_EXISTE_FACTURA_TELECOM',
+        }
 
       }
 
@@ -220,7 +229,7 @@ export class FacturacionCajaService {
 
       let nroFactura = await this.cotelComprobanteFacturaRepository.findNroFactura();
       nroFactura = String(nroFactura).split('-')[1]
-      
+
       let tipoDoc = 0;
       if (facturaDeudaDto.codigo_tipo_documento == 'CI') tipoDoc = 1;
       if (facturaDeudaDto.codigo_tipo_documento == 'CEX') tipoDoc = 2;
@@ -232,7 +241,7 @@ export class FacturacionCajaService {
       let datosFactura = {
         identificador: puntosDeventas[0].identificador,
         //identificador: sucursales[0].identificador,
-        
+
         //identificador: facturaDeudaDto.identificador, // cotelenvia este valor
         tipoEnvioId: 38, //factura individual
         codigoDocumentoSector: parseInt(facturaDeudaDto.codigo_documento_sector),
@@ -243,12 +252,13 @@ export class FacturacionCajaService {
         telefono: "78873940", //nro de celular del punto de venta
         numeroFactura: parseInt(nroFactura), //ricardo dijo q se reinice por año
         nombreRazonSocial: facturaDeudaDto.razon_social, //string
-        periodoFacturado:  " - ", // cotel no envia
+        periodoFacturado: " - ", // cotel no envia
         //periodoFacturado: "SEPTIEMBRE 2021", // cotel debe mandar eso
         codigoTipoDocumentoIdentidad: tipoDoc, //int
         numeroDocumento: facturaDeudaDto.numero_documento,  //string
         codigoCliente: facturaDeudaDto.codigo_cliente,
-        correoElectronico: facturaDeudaDto.email_cliente ? facturaDeudaDto.email_cliente:"sinemailcotel@quickpay.com.bo", //string
+        //correoElectronico: facturaDeudaDto.email_cliente ? facturaDeudaDto.email_cliente:"sinemailcotel@quickpay.com.bo", //string
+        correoElectronico: facturaDeudaDto.email_cliente ?? "sinemailcotel@quickpay.com.bo",
         codigoMetodoPago: 1, // EFECTIVO
         codigoMoneda: 1,  // BS
         tipoCambio: 1, // CUANDO ES BS SIEMPRE MANDAR 1
@@ -272,8 +282,12 @@ export class FacturacionCajaService {
         })
       }
       datosFactura.details = listaDetalle;
-      let resDataAlquiler =  await this.apiIllaService.generarFacturaAlquiler(datosFactura);
-      let resFacturacion =  resDataAlquiler.result;
+      let resDataAlquiler = await this.apiIllaService.generarFacturaAlquiler(datosFactura);
+      if(!resDataAlquiler.status){
+        throw new Error(resDataAlquiler.message);
+      }
+
+      let resFacturacion = resDataAlquiler.result;
       // almacenamos facturas
       const filePathPdf = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
       const filePathXml = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
@@ -346,30 +360,30 @@ export class FacturacionCajaService {
       });
 
       return {
-        respuesta:'RESPUESTA_FACTURA_TELECOMUNICACIONES', 
-        mensaje:resDataAlquiler.message,
-        datosFactura:{
-          identificador:resFacturacion.identificador,
-          xml:resFacturacion.xml,
-          pdf:resFacturacion.pdf,
-          urlVerificacion:resFacturacion.urlVerificacion,
-          urlVerificacionSin:resFacturacion.urlVerificacionSin,
-          leyenda:resFacturacion.leyenda,
-          leyendaEmision:resFacturacion.leyendaEmision,
-          cufd:resFacturacion.cufd,
-          cuf:resFacturacion.cuf,
-          fechaEmision:resFacturacion.fechaEmision
+        respuesta: 'RESPUESTA_FACTURA_TELECOMUNICACIONES',
+        mensaje: resDataAlquiler.message,
+        datosFactura: {
+          identificador: resFacturacion.identificador,
+          xml: resFacturacion.xml,
+          pdf: resFacturacion.pdf,
+          urlVerificacion: resFacturacion.urlVerificacion,
+          urlVerificacionSin: resFacturacion.urlVerificacionSin,
+          leyenda: resFacturacion.leyenda,
+          leyendaEmision: resFacturacion.leyendaEmision,
+          cufd: resFacturacion.cufd,
+          cuf: resFacturacion.cuf,
+          fechaEmision: resFacturacion.fechaEmision
         }
       }
 
     } catch (error) {
-      
+
       //throw new HttpException(error?.message=='REPUESTA_EXISTE_FACTURA_TELECOM'?error.message:'RESPUESTA_ERROR_FACTURA', HttpStatus.NOT_FOUND);
       throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
   }
 
-  async notasConciliacion (cajaConciliacionNotaDto: CajaConciliacionNotaDto){
+  async notasConciliacion(cajaConciliacionNotaDto: CajaConciliacionNotaDto) {
     try {
 
       let productos = await this.apiIllaService.obtenerProductos();
@@ -382,81 +396,84 @@ export class FacturacionCajaService {
       }
 
       let detallesOrigen = [];
-      for(let objDetalleOrigen of cajaConciliacionNotaDto.detallesOrigen){
+      for (let objDetalleOrigen of cajaConciliacionNotaDto.detallesOrigen) {
         detallesOrigen.push({
-          nroItem:objDetalleOrigen.nroItem,
-          actividadEconomica:objDetalleOrigen.actividadEconomica,
-          codigoProductoSin:objDetalleOrigen.codigoProductoSin,
-          codigoProducto:objDetalleOrigen.codigoProducto,
-          descripcion:objDetalleOrigen.descripcion,
-          cantidad:objDetalleOrigen.cantidad,
-          unidadMedida:objDetalleOrigen.unidadMedida,
-          unidadMedidaDescripcion:objDetalleOrigen.unidadMedidaDescripcion,
-          precioUnitario:objDetalleOrigen.precioUnitario,
-          montoDescuento:objDetalleOrigen.montoDescuento,
-          subTotal:objDetalleOrigen.subTotal,
-          codigoDetalleTransaccion:objDetalleOrigen.codigoDetalleTransaccion
+          nroItem: objDetalleOrigen.nroItem,
+          actividadEconomica: objDetalleOrigen.actividadEconomica,
+          codigoProductoSin: objDetalleOrigen.codigoProductoSin,
+          codigoProducto: objDetalleOrigen.codigoProducto,
+          descripcion: objDetalleOrigen.descripcion,
+          cantidad: objDetalleOrigen.cantidad,
+          unidadMedida: objDetalleOrigen.unidadMedida,
+          unidadMedidaDescripcion: objDetalleOrigen.unidadMedidaDescripcion,
+          precioUnitario: objDetalleOrigen.precioUnitario,
+          montoDescuento: objDetalleOrigen.montoDescuento,
+          subTotal: objDetalleOrigen.subTotal,
+          codigoDetalleTransaccion: objDetalleOrigen.codigoDetalleTransaccion
         });
       }
       let detallesConciliacion = [];
-      for(let objDetalleConciliacion of cajaConciliacionNotaDto.detallesConciliacion){
+      for (let objDetalleConciliacion of cajaConciliacionNotaDto.detallesConciliacion) {
         detallesConciliacion.push({
-          nroItem:objDetalleConciliacion.nroItem,
-          actividadEconomica:objDetalleConciliacion.actividadEconomica,
-          codigoProductoSin:objDetalleConciliacion.codigoProductoSin,
-          codigoProducto:objDetalleConciliacion.codigoProducto,
-          descripcion:objDetalleConciliacion.descripcion,
-          montoOriginal:objDetalleConciliacion.montoOriginal,
-          montoFinal:objDetalleConciliacion.montoFinal,
-          montoConciliado:objDetalleConciliacion.montoConciliado
+          nroItem: objDetalleConciliacion.nroItem,
+          actividadEconomica: objDetalleConciliacion.actividadEconomica,
+          codigoProductoSin: objDetalleConciliacion.codigoProductoSin,
+          codigoProducto: objDetalleConciliacion.codigoProducto,
+          descripcion: objDetalleConciliacion.descripcion,
+          montoOriginal: objDetalleConciliacion.montoOriginal,
+          montoFinal: objDetalleConciliacion.montoFinal,
+          montoConciliado: objDetalleConciliacion.montoConciliado
         });
       }
       let notasConciliacion = {
         identificador: cajaConciliacionNotaDto.identificador,
         //identificador: puntosDeventas[0].identificador,
         codigoDocumentoSector: cajaConciliacionNotaDto.codigoDocumentoSector,
-        codigoPuntoVenta:cajaConciliacionNotaDto.codigoPuntoVenta,
+        codigoPuntoVenta: cajaConciliacionNotaDto.codigoPuntoVenta,
         //codigoPuntoVenta:puntosDeventas[0].codigoPuntoVenta,
         codigoSucursal: cajaConciliacionNotaDto.codigoSucursal,
         //codigoSucursal: puntosDeventas[0].codigoSucursal,
-        municipio:cajaConciliacionNotaDto.municipio,
-        telefono:cajaConciliacionNotaDto.telefono,
-        numeroNota:cajaConciliacionNotaDto.numeroNota,
-        nombreRazonSocial:cajaConciliacionNotaDto.nombreRazonSocial,
-        codigoTipoDocumentoIdentidad:cajaConciliacionNotaDto.codigoTipoDocumentoIdentidad,
-        numeroDocumento:cajaConciliacionNotaDto.numeroDocumento,
-        complemento:"", // cotel no manda ese dato
-        codigoCliente:cajaConciliacionNotaDto.codigoCliente,
-        correoElectronico:cajaConciliacionNotaDto.correoElectronico,
-        codigoDocumentoSectorOriginal:cajaConciliacionNotaDto.codigoDocumentoSectorOriginal,
-        numeroFactura:cajaConciliacionNotaDto.numeroFactura,
-        numeroAutorizacionCuf:cajaConciliacionNotaDto.numeroAutorizacionCuf,
-        fechaEmisionFactura:cajaConciliacionNotaDto.fechaEmisionFactura,
-        montoTotalOriginal:cajaConciliacionNotaDto.montoTotalOriginal,
-        montoDescuentoAdicional:cajaConciliacionNotaDto.montoDescuentoAdicional,
-        codigoExcepcion:cajaConciliacionNotaDto.codigoExcepcion,
-        usuario:cajaConciliacionNotaDto.usuario,
-        detallesOrigen:detallesOrigen,
-        detallesConciliacion:detallesConciliacion
+        municipio: cajaConciliacionNotaDto.municipio,
+        telefono: cajaConciliacionNotaDto.telefono,
+        numeroNota: cajaConciliacionNotaDto.numeroNota,
+        nombreRazonSocial: cajaConciliacionNotaDto.nombreRazonSocial,
+        codigoTipoDocumentoIdentidad: cajaConciliacionNotaDto.codigoTipoDocumentoIdentidad,
+        numeroDocumento: cajaConciliacionNotaDto.numeroDocumento,
+        complemento: "", // cotel no manda ese dato
+        codigoCliente: cajaConciliacionNotaDto.codigoCliente,
+        correoElectronico: cajaConciliacionNotaDto.correoElectronico,
+        codigoDocumentoSectorOriginal: cajaConciliacionNotaDto.codigoDocumentoSectorOriginal,
+        numeroFactura: cajaConciliacionNotaDto.numeroFactura,
+        numeroAutorizacionCuf: cajaConciliacionNotaDto.numeroAutorizacionCuf,
+        fechaEmisionFactura: cajaConciliacionNotaDto.fechaEmisionFactura,
+        montoTotalOriginal: cajaConciliacionNotaDto.montoTotalOriginal,
+        montoDescuentoAdicional: cajaConciliacionNotaDto.montoDescuentoAdicional,
+        codigoExcepcion: cajaConciliacionNotaDto.codigoExcepcion,
+        usuario: cajaConciliacionNotaDto.usuario,
+        detallesOrigen: detallesOrigen,
+        detallesConciliacion: detallesConciliacion
       }
 
-      let restConciliacion = await this.apiIllaService.noteConciliacion(notasConciliacion);
+      let restConciliacion = await this.apiIllaService.notaConciliacion(notasConciliacion);
+      if(!restConciliacion.status){
+        throw new Error(restConciliacion.message);
+      }
 
       let resNotasConciliacion = restConciliacion.result;
       return {
-        respuesta:'NOTA_DE_DEBITO_RESPUESTA_EMISION', 
-        mensaje:restConciliacion.message,
-        datosFactura:{
-          identificador:resNotasConciliacion.identificador,
-          xml:resNotasConciliacion.xml,
-          pdf:resNotasConciliacion.pdf,
-          urlVerificacion:resNotasConciliacion.urlVerificacion,
-          urlVerificacionSin:resNotasConciliacion.urlVerificacionSin,
-          leyenda:resNotasConciliacion.leyenda,
-          leyendaEmision:resNotasConciliacion.leyendaEmision,
-          cufd:resNotasConciliacion.cufd,
-          cuf:resNotasConciliacion.cuf,
-          fechaEmision:resNotasConciliacion.fechaEmision
+        respuesta: 'NOTA_DE_DEBITO_RESPUESTA_EMISION',
+        mensaje: restConciliacion.message,
+        datosFactura: {
+          identificador: resNotasConciliacion.identificador,
+          xml: resNotasConciliacion.xml,
+          pdf: resNotasConciliacion.pdf,
+          urlVerificacion: resNotasConciliacion.urlVerificacion,
+          urlVerificacionSin: resNotasConciliacion.urlVerificacionSin,
+          leyenda: resNotasConciliacion.leyenda,
+          leyendaEmision: resNotasConciliacion.leyendaEmision,
+          cufd: resNotasConciliacion.cufd,
+          cuf: resNotasConciliacion.cuf,
+          fechaEmision: resNotasConciliacion.fechaEmision
         }
       }
 
@@ -464,8 +481,8 @@ export class FacturacionCajaService {
       throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
   }
-  
-  async notasCreditoDebito (cajaNotaCreditoDebitoDto: CajaNotaCreditoDebitoDto){
+
+  async notasCreditoDebito(cajaNotaCreditoDebitoDto: CajaNotaCreditoDebitoDto) {
     try {
 
       let productos = await this.apiIllaService.obtenerProductos();
@@ -478,7 +495,7 @@ export class FacturacionCajaService {
       }
 
       let detalles = [];
-      for(let objDetalle of cajaNotaCreditoDebitoDto.details){
+      for (let objDetalle of cajaNotaCreditoDebitoDto.details) {
         detalles.push({
           nroItem: objDetalle.nroItem,
           actividadEconomica: objDetalle.actividadEconomica,
@@ -515,26 +532,124 @@ export class FacturacionCajaService {
         montoDescuentoAdicional: cajaNotaCreditoDebitoDto.montoDescuentoAdicional,
         codigoExcepcion: cajaNotaCreditoDebitoDto.codigoExcepcion,
         usuario: cajaNotaCreditoDebitoDto.usuario,
-        details:detalles
+        details: detalles
       }
 
-      let resNotasCreditoDebito = await this.apiIllaService.noteCreditoDebito(notasCreditoDebito);
-      let resFacturaCreditoDebito= resNotasCreditoDebito.result;
+      let resNotasCreditoDebito = await this.apiIllaService.notaCreditoDebito(notasCreditoDebito);
+      
+      if(!resNotasCreditoDebito.status){
+        throw new Error(resNotasCreditoDebito.message);
+      }
+
+      let resFacturaCreditoDebito = resNotasCreditoDebito.result;
       return {
-        respuesta:'NOTA_DE_DEBITO_RESPUESTA_EMISION', 
-        mensaje:resNotasCreditoDebito.message,
-        datosFactura:{
-          identificador:resFacturaCreditoDebito.identificador,
-          xml:resFacturaCreditoDebito.xml,
-          pdf:resFacturaCreditoDebito.pdf,
-          urlVerificacion:resFacturaCreditoDebito.urlVerificacion,
-          urlVerificacionSin:resFacturaCreditoDebito.urlVerificacionSin,
-          leyenda:resFacturaCreditoDebito.leyenda,
-          leyendaEmision:resFacturaCreditoDebito.leyendaEmision,
-          cufd:resFacturaCreditoDebito.cufd,
-          cuf:resFacturaCreditoDebito.cuf,
-          fechaEmision:resFacturaCreditoDebito.fechaEmision
+        respuesta: 'NOTA_DE_DEBITO_RESPUESTA_EMISION',
+        mensaje: resNotasCreditoDebito.message,
+        datosFactura: {
+          identificador: resFacturaCreditoDebito.identificador,
+          xml: resFacturaCreditoDebito.xml,
+          pdf: resFacturaCreditoDebito.pdf,
+          urlVerificacion: resFacturaCreditoDebito.urlVerificacion,
+          urlVerificacionSin: resFacturaCreditoDebito.urlVerificacionSin,
+          leyenda: resFacturaCreditoDebito.leyenda,
+          leyendaEmision: resFacturaCreditoDebito.leyendaEmision,
+          cufd: resFacturaCreditoDebito.cufd,
+          cuf: resFacturaCreditoDebito.cuf,
+          fechaEmision: resFacturaCreditoDebito.fechaEmision
         }
+      }
+
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.NOT_FOUND);
+    }
+  }
+
+  async notaAnulacion(notaAnulacionDto: NotaAnulacionDto) {
+    try {
+
+      let puntosDeventas = await this.apiIllaService.obtenerPuntosVentas();
+      if (!puntosDeventas || puntosDeventas.length == 0) {
+        throw new Error(`no se pudo obtener puntos de venats de SIAT`);
+      }
+      let payload =
+      {
+        identificador: puntosDeventas[0].identificador,
+        identificadorNota: notaAnulacionDto.identificadorNota,
+        nit: notaAnulacionDto.nit,
+        codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
+        codigoSucursal: puntosDeventas[0].codigoSucursal,
+        codigoMotivo: notaAnulacionDto.codigoMotivo,
+        cuf: notaAnulacionDto.cuf
+      }
+      let resAnulacion = await this.apiIllaService.notaAnulacion(payload);
+      if(!resAnulacion.status){
+        throw new Error(resAnulacion.message);
+      }
+      return {
+        respuesta: 'NOTA_ANULACION_EXITOSA',
+        mensaje: resAnulacion.message
+      }
+
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.NOT_FOUND);
+    }
+  }
+  
+  async facturaAlquilerAnulacion(facturaAnulacionDto: FacturaAnulacionDto) {
+    try {
+
+      let puntosDeventas = await this.apiIllaService.obtenerPuntosVentas();
+      if (!puntosDeventas || puntosDeventas.length == 0) {
+        throw new Error(`no se pudo obtener puntos de venats de SIAT`);
+      }
+      let payload =
+      {
+        identificador: puntosDeventas[0].identificador,
+        identificadorNota: notaAnulacionDto.identificadorNota,
+        nit: notaAnulacionDto.nit,
+        codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
+        codigoSucursal: puntosDeventas[0].codigoSucursal,
+        codigoMotivo: notaAnulacionDto.codigoMotivo,
+        cuf: notaAnulacionDto.cuf
+      }
+      let resAnulacion = await this.apiIllaService.notaAnulacion(payload);
+      if(!resAnulacion.status){
+        throw new Error(resAnulacion.message);
+      }
+      return {
+        respuesta: 'NOTA_ANULACION_EXITOSA',
+        mensaje: resAnulacion.message
+      }
+
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.NOT_FOUND);
+    }
+  }
+  
+  async facturaTelcomAnulacion(facturaAnulacionDto: FacturaAnulacionDto) {
+    try {
+
+      let puntosDeventas = await this.apiIllaService.obtenerPuntosVentas();
+      if (!puntosDeventas || puntosDeventas.length == 0) {
+        throw new Error(`no se pudo obtener puntos de venats de SIAT`);
+      }
+      let payload =
+      {
+          identificador: puntosDeventas[0].identificador,
+          identificadorFactura: facturaAnulacionDto.identificador,
+          nit: facturaAnulacionDto.nit,
+          codigoPuntoVenta: 0,
+          codigoSucursal: 0,
+          codigoMotivo: facturaAnulacionDto.codigoMotivo,
+          cuf: facturaAnulacionDto.cuf
+      }
+      let resAnulacion = await this.apiIllaService.facturaTelcomAnulacion(payload);
+      if(!resAnulacion.status){
+        throw new Error(resAnulacion.message);
+      }
+      return {
+        respuesta: 'FACTURA_ANULACION_EXITOSA',
+        mensaje: resAnulacion.message
       }
 
     } catch (error) {
