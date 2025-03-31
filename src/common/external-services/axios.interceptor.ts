@@ -12,7 +12,7 @@ export class AxiosInterceptorService {
         // Configuración de Axios
         this.axiosInstance = axios.create({
             baseURL: process.env.COTEL_API,
-            timeout: 30000,
+            timeout: 60000,
         });
 
         // Configuración del interceptor de solicitud

@@ -13,7 +13,7 @@ export class ApiIllaService {
     // Configuración de Axios
     this.axiosInstance = axios.create({
       baseURL: process.env.ILLA_API,
-      timeout: 30000,
+      timeout: 60000,
     });
 
     // Configuración del interceptor de solicitud

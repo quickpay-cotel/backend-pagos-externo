@@ -14,6 +14,11 @@ import { FuncionesFechas } from "src/common/utils/funciones.fechas";
 import { CajaConciliacionNotaDto } from "./factura.caja.dto/caja-conciliacion-nota.dto";
 import { CajaNotaCreditoDebitoDto } from "./factura.caja.dto/caja-nota-credito-debito.dto";
 import { NotaAnulacionDto } from "./factura.caja.dto/nota-anulacion.dto";
+import { CotelNotasCajaRepository } from 'src/common/repository/cotel.notas_caja.repository';
+import { CotelNotasDetalleConciliacionRepository } from 'src/common/repository/cotel.notas_detalle_conciliacion.repository';
+import { CotelNotasDetalleOrigenRepository } from 'src/common/repository/cotel.notas_detalle_origen.repository';
+import { CotelNotasEmitidasCajaRepository } from 'src/common/repository/cotel.notas_emitidas_caja.repository';
+import { CotelNotasDetalleCreditoDebitoRepository } from 'src/common/repository/cotel.notas_detalle_credito_debito.repository';
 
 @Injectable()
 export class FacturacionCajaService {
@@ -24,18 +29,23 @@ export class FacturacionCajaService {
     private readonly cotelFacturasCajaRepository: CotelFacturasCajaRepository,
     private readonly cotelFacturaDetalleCajaRepository: CotelFacturaDetalleCajaRepository,
     private readonly cotelFacturasEmitidasCajaRepository: CotelFacturasEmitidasCajaRepository,
+
+    private readonly cotelNotasCajaRepository: CotelNotasCajaRepository,
+    private readonly cotelNotasDetalleConciliacionRepository: CotelNotasDetalleConciliacionRepository,
+    private readonly cotelNotasDetalleOrigenRepository: CotelNotasDetalleOrigenRepository,
+    private readonly cotelNotasEmitidasCajaRepository: CotelNotasEmitidasCajaRepository,
+
+    private readonly cotelNotasDetalleCreditoDebitoRepository : CotelNotasDetalleCreditoDebitoRepository
+
   ) {
   }
   async facturaTelcom(facturaDeudaDto: FacturaDeudaDto) {
     try {
-
-
-
       // veriicar si el identificador ya ha generado factura
       let lstFacturaEmitida = await this.cotelFacturasCajaRepository.facturaEmitidaByIdentificador(facturaDeudaDto.identificador);
       if (lstFacturaEmitida && lstFacturaEmitida.length) {
         return {
-          message: "Ya se ha registrado anteriormente una factura con el identificador: "+facturaDeudaDto.identificador,
+          message: "Ya se ha registrado anteriormente una factura con el identificador: " + facturaDeudaDto.identificador,
           result: {
             identificador: lstFacturaEmitida[0].identificador,
             urlVerificacion: lstFacturaEmitida[0].url_verificacion,
@@ -184,6 +194,7 @@ export class FacturacionCajaService {
         leyenda_emision: resFacturacion.leyendaEmision,
         cufd: resFacturacion.cufd,
         cuf: resFacturacion.cuf,
+        estado_factura_id:1019,// PROCESADO
         fecha_emision: resFacturacion.fechaEmision,
         estado_id: 1000
       });
@@ -218,7 +229,7 @@ export class FacturacionCajaService {
       let lstFacturaEmitida = await this.cotelFacturasCajaRepository.facturaEmitidaByIdentificador(facturaDeudaDto.identificador);
       if (lstFacturaEmitida && lstFacturaEmitida.length) {
         return {
-          message: "Ya se ha registrado anteriormente una factura con el identificador: "+facturaDeudaDto.identificador,
+          message: "Ya se ha registrado anteriormente una factura con el identificador: " + facturaDeudaDto.identificador,
           result: {
             identificador: lstFacturaEmitida[0].identificador,
             urlVerificacion: lstFacturaEmitida[0].url_verificacion,
@@ -342,6 +353,7 @@ export class FacturacionCajaService {
           canal_caja: facturaDeudaDto.canal_caja,
           canal_caja_sucursal: facturaDeudaDto.canal_caja_sucursal,
           canal_caja_usuario: facturaDeudaDto.canal_caja_usuario,
+
           tipo_documento_caja_id: 1015,
           estado_id: 1000
         }
@@ -373,6 +385,7 @@ export class FacturacionCajaService {
         leyenda_emision: resFacturacion.leyendaEmision,
         cufd: resFacturacion.cufd,
         cuf: resFacturacion.cuf,
+        estado_factura_id:1019,// PROCESADO
         fecha_emision: resFacturacion.fechaEmision,
         estado_id: 1000
       });
@@ -475,6 +488,105 @@ export class FacturacionCajaService {
       }
 
       let resNotasConciliacion = restConciliacion.result;
+      // almacenamos facturas
+      const filePathPdf = path.join(this.storePath + '/notas_caja', 'nota-conciliacion-' + resNotasConciliacion.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
+      const filePathXml = path.join(this.storePath + '/notas_caja', 'nota-conciliacion-' + resNotasConciliacion.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
+      try {
+        // Decodificar el string Base64
+        const bufferPdf = Buffer.from(resNotasConciliacion.pdf, 'base64');
+        const bufferXml = Buffer.from(resNotasConciliacion.xml, 'base64');
+        // Guardar el archivo en la carpeta 'store'
+        fs.writeFileSync(filePathPdf, bufferPdf);
+        fs.writeFileSync(filePathXml, bufferXml);
+        console.log('Archivos (factura XML y PDF) almacenado exitosamente')
+      } catch (error) {
+        throw new Error(`Error al guardar el archivos (XML Y PDF): ${error.message}`);
+      }
+
+      // registramos en la BD NOTA
+      const notasCajas = await this.cotelNotasCajaRepository.create(
+        {
+          identificador: cajaConciliacionNotaDto.identificador,
+          codigo_documento_sector: cajaConciliacionNotaDto.codigoDocumentoSector,
+          codigo_punto_venta: cajaConciliacionNotaDto.codigoPuntoVenta,
+          codigo_sucursal: cajaConciliacionNotaDto.codigoSucursal,
+          municipio: cajaConciliacionNotaDto.municipio,
+          telefono: cajaConciliacionNotaDto.telefono,
+          numero_nota: cajaConciliacionNotaDto.numeroNota,
+          nombre_razon_social: cajaConciliacionNotaDto.nombreRazonSocial,
+          codigo_tipo_documento_identidad: cajaConciliacionNotaDto.codigoTipoDocumentoIdentidad,
+          numero_documento: cajaConciliacionNotaDto.numeroDocumento,
+          codigo_cliente: cajaConciliacionNotaDto.codigoCliente,
+          correo_electronico: cajaConciliacionNotaDto.correoElectronico,
+          codigo_documento_sector_original: cajaConciliacionNotaDto.codigoDocumentoSectorOriginal,
+          numero_factura: cajaConciliacionNotaDto.numeroFactura,
+          numero_autorizacion_cuf: cajaConciliacionNotaDto.numeroAutorizacionCuf,
+          fecha_emision_factura: cajaConciliacionNotaDto.fechaEmisionFactura,
+          monto_total_original: cajaConciliacionNotaDto.montoTotalOriginal,
+          monto_descuento_adicional: cajaConciliacionNotaDto.montoDescuentoAdicional,
+          codigo_excepcion: cajaConciliacionNotaDto.codigoExcepcion,
+          usuario: cajaConciliacionNotaDto.usuario,
+          tipo_documento_caja_id: 1018,
+          estado_id: 1000
+        }
+      );
+
+      // notas detalle origen
+      for (let notaDetalleOrigen of cajaConciliacionNotaDto.detallesOrigen) {
+        const notasCajadetalleOrigen = await this.cotelNotasDetalleOrigenRepository.create(
+          {
+            nota_caja_id: notasCajas.nota_caja_id,
+            nro_item: notaDetalleOrigen.nroItem,
+            actividad_economica: notaDetalleOrigen.actividadEconomica,
+            codigo_producto_sin: notaDetalleOrigen.codigoProductoSin,
+            codigo_producto: notaDetalleOrigen.codigoProducto,
+            descripcion: notaDetalleOrigen.descripcion,
+            cantidad: notaDetalleOrigen.cantidad,
+            unidad_medida: notaDetalleOrigen.unidadMedida,
+            unidad_medida_descripcion: notaDetalleOrigen.unidadMedidaDescripcion,
+            precio_unitario: notaDetalleOrigen.precioUnitario,
+            monto_descuento: notaDetalleOrigen.montoDescuento,
+            sub_total: notaDetalleOrigen.subTotal,
+            codigo_detalle_transaccion: notaDetalleOrigen.codigoDetalleTransaccion,
+            estado_id: 1000
+          }
+        );
+      }
+      // notas detalle conciliacion
+      for (let notaDetalleConciliacion of cajaConciliacionNotaDto.detallesConciliacion) {
+        const notasCajadetalleOrigen = await this.cotelNotasDetalleConciliacionRepository.create(
+          {
+            nota_caja_id: notasCajas.nota_caja_id,
+            nro_item: notaDetalleConciliacion.nroItem,
+            actividad_economica: notaDetalleConciliacion.actividadEconomica,
+            codigo_producto_sin: notaDetalleConciliacion.codigoProductoSin,
+            codigo_producto: notaDetalleConciliacion.codigoProducto,
+            descripcion: notaDetalleConciliacion.descripcion,
+            monto_original: notaDetalleConciliacion.montoOriginal,
+            monto_final: notaDetalleConciliacion.montoFinal,
+            monto_conciliado: notaDetalleConciliacion.montoConciliado,
+            estado_id: 1000
+          }
+        );
+      }
+
+      // REGISTRA NOTA
+      await this.cotelNotasEmitidasCajaRepository.create({
+        nota_caja_id: notasCajas.nota_caja_id,
+        identificador: resNotasConciliacion.identificador,
+        xml_ruta: filePathXml,
+        pdf_ruta: filePathPdf,
+        url_verificacion: resNotasConciliacion.urlVerificacion,
+        url_verificacion_sin: resNotasConciliacion.urlVerificacionSin,
+        leyenda: resNotasConciliacion.leyenda,
+        leyenda_emision: resNotasConciliacion.leyendaEmision,
+        cufd: resNotasConciliacion.cufd,
+        cuf: resNotasConciliacion.cuf,
+        estado_nota_id:1021,
+        fecha_emision: resNotasConciliacion.fechaEmision,
+        estado_id: 1000
+      });
+
       return {
         message: restConciliacion.message,
         result: {
@@ -559,6 +671,90 @@ export class FacturacionCajaService {
       }
 
       let resFacturaCreditoDebito = resNotasCreditoDebito.result;
+
+      // almacenamos facturas
+      const filePathPdf = path.join(this.storePath + '/notas_caja', 'nota-credito-debito-' + resFacturaCreditoDebito.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
+      const filePathXml = path.join(this.storePath + '/notas_caja', 'nota-credito-debito-' + resFacturaCreditoDebito.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
+      try {
+        // Decodificar el string Base64
+        const bufferPdf = Buffer.from(resFacturaCreditoDebito.pdf, 'base64');
+        const bufferXml = Buffer.from(resFacturaCreditoDebito.xml, 'base64');
+        // Guardar el archivo en la carpeta 'store'
+        fs.writeFileSync(filePathPdf, bufferPdf);
+        fs.writeFileSync(filePathXml, bufferXml);
+        console.log('Archivos (factura XML y PDF) almacenado exitosamente')
+      } catch (error) {
+        throw new Error(`Error al guardar el archivos (XML Y PDF): ${error.message}`);
+      }
+
+
+      // registramos en la BD NOTA
+      const notasCajas = await this.cotelNotasCajaRepository.create(
+        {
+          identificador: cajaNotaCreditoDebitoDto.identificador,
+          codigo_documento_sector: cajaNotaCreditoDebitoDto.codigoDocumentoSector,
+          codigo_punto_venta: cajaNotaCreditoDebitoDto.codigoPuntoVenta,
+          codigo_sucursal: cajaNotaCreditoDebitoDto.codigoSucursal,
+          municipio: cajaNotaCreditoDebitoDto.municipio,
+          telefono: cajaNotaCreditoDebitoDto.telefono,
+          numero_nota: cajaNotaCreditoDebitoDto.numeroNota,
+          nombre_razon_social: cajaNotaCreditoDebitoDto.nombreRazonSocial,
+          codigo_tipo_documento_identidad: cajaNotaCreditoDebitoDto.codigoTipoDocumentoIdentidad,
+          numero_documento: cajaNotaCreditoDebitoDto.numeroDocumento,
+          codigo_cliente: cajaNotaCreditoDebitoDto.codigoCliente,
+          correo_electronico: cajaNotaCreditoDebitoDto.correoElectronico,
+          codigo_documento_sector_original: cajaNotaCreditoDebitoDto.codigoDocumentoSectorOriginal,
+          numero_factura: cajaNotaCreditoDebitoDto.numeroFactura,
+          numero_autorizacion_cuf: cajaNotaCreditoDebitoDto.numeroAutorizacionCuf,
+          fecha_emision_factura: cajaNotaCreditoDebitoDto.fechaEmisionFactura,
+          monto_total_original: cajaNotaCreditoDebitoDto.montoTotalOriginal,
+          monto_descuento_adicional: cajaNotaCreditoDebitoDto.montoDescuentoAdicional,
+          codigo_excepcion: cajaNotaCreditoDebitoDto.codigoExcepcion,
+          usuario: cajaNotaCreditoDebitoDto.usuario,
+          tipo_documento_caja_id: 1017,
+          estado_id: 1000
+        }
+      );
+
+
+      // notas detalle origen
+      for (let notaDetalle of cajaNotaCreditoDebitoDto.details) {
+        const notasDetalleCreditoDebito = await this.cotelNotasDetalleCreditoDebitoRepository.create(
+          {
+            nota_caja_id: notasCajas.nota_caja_id,
+            nro_item: notaDetalle.nroItem,
+            actividad_economica: notaDetalle.actividadEconomica,
+            codigo_producto_sin: notaDetalle.codigoProductoSin,
+            codigo_producto: notaDetalle.codigoProducto,
+            descripcion: notaDetalle.descripcion,
+            cantidad: notaDetalle.cantidad,
+            unidad_medida: notaDetalle.unidadMedida,
+            precio_unitario: notaDetalle.precioUnitario,
+            monto_descuento: notaDetalle.montoDescuento,
+            sub_total: notaDetalle.subTotal,
+            codigo_detalle_transaccion: notaDetalle.codigoDetalleTransaccion,
+            estado_id: 1000
+          }
+        );
+      }
+
+      // REGISTRA NOTA
+      await this.cotelNotasEmitidasCajaRepository.create({
+        nota_caja_id: notasCajas.nota_caja_id,
+        identificador: resFacturaCreditoDebito.identificador,
+        xml_ruta: filePathXml,
+        pdf_ruta: filePathPdf,
+        url_verificacion: resFacturaCreditoDebito.urlVerificacion,
+        url_verificacion_sin: resFacturaCreditoDebito.urlVerificacionSin,
+        leyenda: resFacturaCreditoDebito.leyenda,
+        leyenda_emision: resFacturaCreditoDebito.leyendaEmision,
+        cufd: resFacturaCreditoDebito.cufd,
+        cuf: resFacturaCreditoDebito.cuf,
+        estado_nota_id:1021,
+        fecha_emision: resFacturaCreditoDebito.fechaEmision,
+        estado_id: 1000
+      });
+
       return {
         message: resNotasCreditoDebito.message,
         result: {
@@ -584,9 +780,9 @@ export class FacturacionCajaService {
     try {
 
       let motivoString = "";
-      if(notaAnulacionDto.codigoMotivo==1)motivoString="FACTURA MAL EMITIDA";
-      if(notaAnulacionDto.codigoMotivo==3)motivoString="DATOS DE EMISIÓN INCORRECTOS";
-      if(notaAnulacionDto.codigoMotivo==4)motivoString="FACTURA DEVUELTA";
+      if (notaAnulacionDto.codigoMotivo == 1) motivoString = "FACTURA MAL EMITIDA";
+      if (notaAnulacionDto.codigoMotivo == 3) motivoString = "DATOS DE EMISIÓN INCORRECTOS";
+      if (notaAnulacionDto.codigoMotivo == 4) motivoString = "FACTURA DEVUELTA";
 
       let puntosDeventas = await this.apiIllaService.obtenerPuntosVentas();
       if (!puntosDeventas || puntosDeventas.length == 0) {
@@ -600,7 +796,7 @@ export class FacturacionCajaService {
         codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
         codigoSucursal: puntosDeventas[0].codigoSucursal,
         codigoMotivo: notaAnulacionDto.codigoMotivo,
-        motivo : motivoString,
+        motivo: motivoString,
         cuf: notaAnulacionDto.cuf
       }
       let resAnulacion = await this.apiIllaService.notaAnulacion(payload);
@@ -619,6 +815,12 @@ export class FacturacionCajaService {
   async facturaAlquilerAnulacion(facturaAnulacionDto: FacturaAnulacionDto) {
     try {
 
+      let motivoString = "";
+      if (facturaAnulacionDto.codigoMotivo == 1) motivoString = "FACTURA MAL EMITIDA";
+      if (facturaAnulacionDto.codigoMotivo == 3) motivoString = "DATOS DE EMISIÓN INCORRECTOS";
+      if (facturaAnulacionDto.codigoMotivo == 4) motivoString = "FACTURA DEVUELTA";
+
+
       let puntosDeventas = await this.apiIllaService.obtenerPuntosVentas();
       if (!puntosDeventas || puntosDeventas.length == 0) {
         throw new Error(`no se pudo obtener puntos de venats de SIAT`);
@@ -631,15 +833,15 @@ export class FacturacionCajaService {
         codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
         codigoSucursal: puntosDeventas[0].codigoSucursal,
         codigoMotivo: facturaAnulacionDto.codigoMotivo,
-        cuf: facturaAnulacionDto.cuf
+        cuf: facturaAnulacionDto.cuf,
+        motivo:motivoString
       }
       let resAnulacion = await this.apiIllaService.facturaAlquilerAnulacion(payload);
       if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
       return {
-        respuesta: 'FACTURA_ANULACION_EXITOSA',
-        mensaje: resAnulacion.message
+        message: resAnulacion.message
       }
 
     } catch (error) {
@@ -650,6 +852,12 @@ export class FacturacionCajaService {
   async facturaTelcomAnulacion(facturaAnulacionDto: FacturaAnulacionDto) {
     try {
 
+      let motivoString = "";
+      if (facturaAnulacionDto.codigoMotivo == 1) motivoString = "FACTURA MAL EMITIDA";
+      if (facturaAnulacionDto.codigoMotivo == 3) motivoString = "DATOS DE EMISIÓN INCORRECTOS";
+      if (facturaAnulacionDto.codigoMotivo == 4) motivoString = "FACTURA DEVUELTA";
+
+
       let puntosDeventas = await this.apiIllaService.obtenerPuntosVentas();
       if (!puntosDeventas || puntosDeventas.length == 0) {
         throw new Error(`no se pudo obtener puntos de venats de SIAT`);
@@ -662,15 +870,15 @@ export class FacturacionCajaService {
         codigoPuntoVenta: puntosDeventas[0].codigoPuntoVenta,
         codigoSucursal: puntosDeventas[0].codigoSucursal,
         codigoMotivo: facturaAnulacionDto.codigoMotivo,
-        cuf: facturaAnulacionDto.cuf
+        cuf: facturaAnulacionDto.cuf,
+        motivo:motivoString
       }
       let resAnulacion = await this.apiIllaService.facturaTelcomAnulacion(payload);
       if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
       return {
-        respuesta: 'FACTURA_ANULACION_EXITOSA',
-        mensaje: resAnulacion.message
+        message: resAnulacion.message
       }
 
     } catch (error) {

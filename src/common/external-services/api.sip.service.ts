@@ -13,7 +13,7 @@ export class ApiSipService {
     // Configuración de Axios
     this.axiosInstance = axios.create({
       baseURL: process.env.SIP_API,
-      timeout: 30000,
+      timeout: 60000,
     });
 
     // Configuración del interceptor de solicitud
