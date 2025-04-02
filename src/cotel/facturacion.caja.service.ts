@@ -35,7 +35,7 @@ export class FacturacionCajaService {
     private readonly cotelNotasDetalleOrigenRepository: CotelNotasDetalleOrigenRepository,
     private readonly cotelNotasEmitidasCajaRepository: CotelNotasEmitidasCajaRepository,
 
-    private readonly cotelNotasDetalleCreditoDebitoRepository : CotelNotasDetalleCreditoDebitoRepository
+    private readonly cotelNotasDetalleCreditoDebitoRepository: CotelNotasDetalleCreditoDebitoRepository
 
   ) {
   }
@@ -48,6 +48,7 @@ export class FacturacionCajaService {
           message: "Ya se ha registrado anteriormente una factura con el identificador: " + facturaDeudaDto.identificador,
           result: {
             identificador: lstFacturaEmitida[0].identificador,
+            nroFactura: lstFacturaEmitida[0].nro_factura,
             urlVerificacion: lstFacturaEmitida[0].url_verificacion,
             urlVerificacionSin: lstFacturaEmitida[0].url_verificacion_sin,
             leyenda: lstFacturaEmitida[0].leyenda,
@@ -131,12 +132,16 @@ export class FacturacionCajaService {
       const filePathPdf = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
       const filePathXml = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
       try {
-        // Decodificar el string Base64
-        const bufferPdf = Buffer.from(resFacturacion.pdf, 'base64');
-        const bufferXml = Buffer.from(resFacturacion.xml, 'base64');
-        // Guardar el archivo en la carpeta 'store'
-        fs.writeFileSync(filePathPdf, bufferPdf);
-        fs.writeFileSync(filePathXml, bufferXml);
+        // Verificar si los valores existen antes de decodificar
+        if (resFacturacion.pdf) {
+          const bufferPdf = Buffer.from(resFacturacion.pdf, 'base64');
+          fs.writeFileSync(filePathPdf, bufferPdf);
+        }
+
+        if (resFacturacion.xml) {
+          const bufferXml = Buffer.from(resFacturacion.xml, 'base64');
+          fs.writeFileSync(filePathXml, bufferXml);
+        }
         console.log('Archivos (factura XML y PDF) almacenado exitosamente')
       } catch (error) {
         throw new Error(`Error al guardar el archivos (XML Y PDF): ${error.message}`);
@@ -186,6 +191,7 @@ export class FacturacionCajaService {
       await this.cotelFacturasEmitidasCajaRepository.create({
         factura_caja_id: facturasCajas.factura_caja_id,
         identificador: resFacturacion.identificador,
+        nro_factura: nroFactura,
         xml_ruta: filePathXml,
         pdf_ruta: filePathPdf,
         url_verificacion: resFacturacion.urlVerificacion,
@@ -194,7 +200,7 @@ export class FacturacionCajaService {
         leyenda_emision: resFacturacion.leyendaEmision,
         cufd: resFacturacion.cufd,
         cuf: resFacturacion.cuf,
-        estado_factura_id:1019,// PROCESADO
+        estado_factura_id: 1019,// PROCESADO
         fecha_emision: resFacturacion.fechaEmision,
         estado_id: 1000
       });
@@ -203,6 +209,7 @@ export class FacturacionCajaService {
         message: resDataTelCom.message,
         result: {
           identificador: resFacturacion.identificador,
+          nroFactura: nroFactura,
           xml: resFacturacion.xml,
           pdf: resFacturacion.pdf,
           urlVerificacion: resFacturacion.urlVerificacion,
@@ -232,6 +239,7 @@ export class FacturacionCajaService {
           message: "Ya se ha registrado anteriormente una factura con el identificador: " + facturaDeudaDto.identificador,
           result: {
             identificador: lstFacturaEmitida[0].identificador,
+            nroFactura: lstFacturaEmitida[0].nro_factura,
             urlVerificacion: lstFacturaEmitida[0].url_verificacion,
             urlVerificacionSin: lstFacturaEmitida[0].url_verificacion_sin,
             leyenda: lstFacturaEmitida[0].leyenda,
@@ -321,12 +329,17 @@ export class FacturacionCajaService {
       const filePathPdf = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
       const filePathXml = path.join(this.storePath + '/facturas_caja', 'factura-' + facturaDeudaDto.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
       try {
-        // Decodificar el string Base64
-        const bufferPdf = Buffer.from(resFacturacion.pdf, 'base64');
-        const bufferXml = Buffer.from(resFacturacion.xml, 'base64');
-        // Guardar el archivo en la carpeta 'store'
-        fs.writeFileSync(filePathPdf, bufferPdf);
-        fs.writeFileSync(filePathXml, bufferXml);
+        // Verificar si los valores existen antes de decodificar
+        if (resFacturacion.pdf) {
+          const bufferPdf = Buffer.from(resFacturacion.pdf, 'base64');
+          fs.writeFileSync(filePathPdf, bufferPdf);
+        }
+
+        if (resFacturacion.xml) {
+          const bufferXml = Buffer.from(resFacturacion.xml, 'base64');
+          fs.writeFileSync(filePathXml, bufferXml);
+        }
+
         console.log('Archivos (factura XML y PDF) almacenado exitosamente')
       } catch (error) {
         throw new Error(`Error al guardar el archivos (XML Y PDF): ${error.message}`);
@@ -377,6 +390,7 @@ export class FacturacionCajaService {
       await this.cotelFacturasEmitidasCajaRepository.create({
         factura_caja_id: facturasCajas.factura_caja_id,
         identificador: resFacturacion.identificador,
+        nro_factura: nroFactura,
         xml_ruta: filePathXml,
         pdf_ruta: filePathPdf,
         url_verificacion: resFacturacion.urlVerificacion,
@@ -385,7 +399,7 @@ export class FacturacionCajaService {
         leyenda_emision: resFacturacion.leyendaEmision,
         cufd: resFacturacion.cufd,
         cuf: resFacturacion.cuf,
-        estado_factura_id:1019,// PROCESADO
+        estado_factura_id: 1019,// PROCESADO
         fecha_emision: resFacturacion.fechaEmision,
         estado_id: 1000
       });
@@ -394,6 +408,7 @@ export class FacturacionCajaService {
         message: resDataAlquiler.message,
         result: {
           identificador: resFacturacion.identificador,
+          nroFactura: nroFactura,
           xml: resFacturacion.xml,
           pdf: resFacturacion.pdf,
           urlVerificacion: resFacturacion.urlVerificacion,
@@ -492,12 +507,16 @@ export class FacturacionCajaService {
       const filePathPdf = path.join(this.storePath + '/notas_caja', 'nota-conciliacion-' + resNotasConciliacion.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
       const filePathXml = path.join(this.storePath + '/notas_caja', 'nota-conciliacion-' + resNotasConciliacion.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
       try {
-        // Decodificar el string Base64
-        const bufferPdf = Buffer.from(resNotasConciliacion.pdf, 'base64');
-        const bufferXml = Buffer.from(resNotasConciliacion.xml, 'base64');
-        // Guardar el archivo en la carpeta 'store'
-        fs.writeFileSync(filePathPdf, bufferPdf);
-        fs.writeFileSync(filePathXml, bufferXml);
+        // Verificar si los valores existen antes de decodificar
+        if (resNotasConciliacion.pdf) {
+          const bufferPdf = Buffer.from(resNotasConciliacion.pdf, 'base64');
+          fs.writeFileSync(filePathPdf, bufferPdf);
+        }
+
+        if (resNotasConciliacion.xml) {
+          const bufferXml = Buffer.from(resNotasConciliacion.xml, 'base64');
+          fs.writeFileSync(filePathXml, bufferXml);
+        }
         console.log('Archivos (factura XML y PDF) almacenado exitosamente')
       } catch (error) {
         throw new Error(`Error al guardar el archivos (XML Y PDF): ${error.message}`);
@@ -582,7 +601,7 @@ export class FacturacionCajaService {
         leyenda_emision: resNotasConciliacion.leyendaEmision,
         cufd: resNotasConciliacion.cufd,
         cuf: resNotasConciliacion.cuf,
-        estado_nota_id:1021,
+        estado_nota_id: 1021,
         fecha_emision: resNotasConciliacion.fechaEmision,
         estado_id: 1000
       });
@@ -676,12 +695,16 @@ export class FacturacionCajaService {
       const filePathPdf = path.join(this.storePath + '/notas_caja', 'nota-credito-debito-' + resFacturaCreditoDebito.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
       const filePathXml = path.join(this.storePath + '/notas_caja', 'nota-credito-debito-' + resFacturaCreditoDebito.identificador + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
       try {
-        // Decodificar el string Base64
-        const bufferPdf = Buffer.from(resFacturaCreditoDebito.pdf, 'base64');
-        const bufferXml = Buffer.from(resFacturaCreditoDebito.xml, 'base64');
-        // Guardar el archivo en la carpeta 'store'
-        fs.writeFileSync(filePathPdf, bufferPdf);
-        fs.writeFileSync(filePathXml, bufferXml);
+        // Verificar si los valores existen antes de decodificar
+        if (resFacturaCreditoDebito.pdf) {
+          const bufferPdf = Buffer.from(resFacturaCreditoDebito.pdf, 'base64');
+          fs.writeFileSync(filePathPdf, bufferPdf);
+        }
+
+        if (resFacturaCreditoDebito.xml) {
+          const bufferXml = Buffer.from(resFacturaCreditoDebito.xml, 'base64');
+          fs.writeFileSync(filePathXml, bufferXml);
+        }
         console.log('Archivos (factura XML y PDF) almacenado exitosamente')
       } catch (error) {
         throw new Error(`Error al guardar el archivos (XML Y PDF): ${error.message}`);
@@ -750,7 +773,7 @@ export class FacturacionCajaService {
         leyenda_emision: resFacturaCreditoDebito.leyendaEmision,
         cufd: resFacturaCreditoDebito.cufd,
         cuf: resFacturaCreditoDebito.cuf,
-        estado_nota_id:1021,
+        estado_nota_id: 1021,
         fecha_emision: resFacturaCreditoDebito.fechaEmision,
         estado_id: 1000
       });
@@ -804,7 +827,7 @@ export class FacturacionCajaService {
         throw new Error(resAnulacion.message);
       }
       return {
-        mensaje: resAnulacion.message
+        message: resAnulacion.message
       }
 
     } catch (error) {
@@ -834,7 +857,7 @@ export class FacturacionCajaService {
         codigoSucursal: puntosDeventas[0].codigoSucursal,
         codigoMotivo: facturaAnulacionDto.codigoMotivo,
         cuf: facturaAnulacionDto.cuf,
-        motivo:motivoString
+        motivo: motivoString
       }
       let resAnulacion = await this.apiIllaService.facturaAlquilerAnulacion(payload);
       if (!resAnulacion.status) {
@@ -871,7 +894,7 @@ export class FacturacionCajaService {
         codigoSucursal: puntosDeventas[0].codigoSucursal,
         codigoMotivo: facturaAnulacionDto.codigoMotivo,
         cuf: facturaAnulacionDto.cuf,
-        motivo:motivoString
+        motivo: motivoString
       }
       let resAnulacion = await this.apiIllaService.facturaTelcomAnulacion(payload);
       if (!resAnulacion.status) {
