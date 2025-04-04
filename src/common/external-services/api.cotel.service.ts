@@ -102,6 +102,7 @@ export class ApiCotelService {
 
     // Consulta datos cliente
     async consultaDatosCliente(consultaDatosClienteRequestDto: ConsultaDatosClienteDto) {
+
         try {
             await this.generarToken();
             const response = await this.axiosInstance.post("/web/consultar", consultaDatosClienteRequestDto, {
@@ -109,15 +110,17 @@ export class ApiCotelService {
                     Authorization: `Bearer ${this.token}`,
                 },
             });
-            const codigo = response.data.status;
-            if (codigo == "OK") {
-                return response.data.data;
-            } else {
-                return null;
-            }
+
+            return response.data; // Devuelve el payload en caso de éxito
         } catch (error) {
-            throw error.response.data.data;
+            // Capturar el payload del error si existe
+            if (error.response) {
+                return error.response.data; // Devuelve el body de la respuesta con error (400, 404, etc.)
+            } else {
+                throw new Error("Error al consultar datos cliente");
+            }
         }
+
     }
     // Consulta datos cliente
     async consultaDeudaCliente(pContratoId: string, pServicioId: string) {
@@ -131,16 +134,14 @@ export class ApiCotelService {
                     Authorization: `Bearer ${this.token}`,
                 },
             });
-            const codigo = response.data.status;
-            if (codigo == "OK") {
-                return response.data.data;
-            } else {
-                return null;
-            }
+            return response.data; // Devuelve el payload en caso de éxito
         } catch (error) {
-            //return error;
-            // se sugiere al,acenar logs
-            return null;
+            // Capturar el payload del error si existe
+            if (error.response) {
+                return error.response.data; // Devuelve el body de la respuesta con error (400, 404, etc.)
+            } else {
+                throw new Error("Error al consultar datos cliente");
+            }
         }
     }
     async consultaDeudaClienteConRespuestaOriginal(pContratoId: string, pServicioId: string) {

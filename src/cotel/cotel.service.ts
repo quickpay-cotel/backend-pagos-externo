@@ -40,25 +40,32 @@ export class CotelService {
   }
   async consultaDatosCliente(consultaDatosClienteRequestDto: ConsultaDatosClienteDto) {
     try {
-        let datosCliente = await this.apiCotelService.consultaDatosCliente(consultaDatosClienteRequestDto);
-        if (!datosCliente) throw new Error("error al obtener datos cliente");
-        return datosCliente;
+      let restConsultaDatosCliente = await this.apiCotelService.consultaDatosCliente(consultaDatosClienteRequestDto);
+      if (restConsultaDatosCliente.status != 'OK') {
+        throw new Error(restConsultaDatosCliente.data);
+      }
+      return {
+        message: '',
+        result: restConsultaDatosCliente.data
+      }
     } catch (error) {
-      console.log(error);
-      throw new HttpException(error.response.data.data, HttpStatus.NOT_FOUND);
+      throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
   }
   async consultaDeudaCliente(consultaDeudasDto: ConsultaDeudasDto) {
     try {
-      let deudaCliente = await this.apiCotelService.consultaDeudaCliente(consultaDeudasDto.contratoId,consultaDeudasDto.servicioId);
-      if (!deudaCliente){
-        return [];
+      let deudaCliente = await this.apiCotelService.consultaDeudaCliente(consultaDeudasDto.contratoId, consultaDeudasDto.servicioId);
+      if (deudaCliente.status != 'OK') {
+        throw new Error(deudaCliente.data);
       }
-      return deudaCliente;
+      return {
+        message: '',
+        result: deudaCliente.data
+      }
     } catch (error) {
-      console.log(error);
-      throw new HttpException(error.response.data.data, HttpStatus.NOT_FOUND);
+      throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
+
   }
   async generaQr(deudasDto: DeudasDto) {
     let idTransaccion = '';
@@ -71,10 +78,16 @@ export class CotelService {
 
       // obtener datos del contrato o telefono api COTEL
       let datosCliente = await this.apiCotelService.consultaDatosCliente(deudasDto.consultaDatosClienteDto);
-      if (!datosCliente) throw new Error("error al obtener datos cliente");
-
+      if (datosCliente.status != 'OK') {
+        throw new Error(datosCliente.data);
+      }
+      datosCliente = datosCliente.data
       // consulta deudas api COTEL
       let deudasCliente = await this.apiCotelService.consultaDeudaCliente(datosCliente.contratoId, datosCliente.id_servicio);
+      if (deudasCliente.status != 'OK') {
+        throw new Error(deudasCliente.data);
+      }
+      deudasCliente = deudasCliente.data;
 
       // Filtrar deudas seleccionados 
       const deudasSeleccionados = deudasCliente.filter(deudaTodos =>
@@ -123,8 +136,8 @@ export class CotelService {
           cuenta_destino_sip: datosQr.cuentaDestino,
           id_transaccion_sip: datosQr.idTransaccion,
           es_imagen_sip: datosQr.esImagen,
-          correo_para_comprobante:deudasDto.correoParaComprobante,
-          nro_celular:deudasDto.nroCelular,
+          correo_para_comprobante: deudasDto.correoParaComprobante,
+          nro_celular: deudasDto.nroCelular,
           estado_id: 1000
         }, t)
         if (!qrGenerado) throw new Error("nose pudo registrar QR");
@@ -186,7 +199,7 @@ export class CotelService {
           }
 
           // reserva deuda
-           await this.cotelReservaDeudaRepository.create({
+          await this.cotelReservaDeudaRepository.create({
             deuda_id: deuda.deuda_id,
             qr_generado_id: qrGenerado.qr_generado_id,
             id_transaccion: idTransaccion,
@@ -195,15 +208,19 @@ export class CotelService {
             estado_id: 1000
           }, t)
         }
+    
         return {
-          imagen_qr: "data:image/png;base64," + datosQr.imagenQr,
-          fecha_vencimiento: datosQr.fechaVencimiento,
-          alias: dataGeneraQr.alias,
-          id_transaccion_reserva: idTransaccion
-        };
+          message: 'QR generado',
+          result: {
+            imagen_qr: "data:image/png;base64," + datosQr.imagenQr,
+            fecha_vencimiento: datosQr.fechaVencimiento,
+            alias: dataGeneraQr.alias,
+            id_transaccion_reserva: idTransaccion
+          }
+        }
+
       });
     } catch (error) {
-      console.log("metodo: generaQr ",error);
       if (idTransaccion) {
         await this.liberarReserva(idTransaccion);
       }
