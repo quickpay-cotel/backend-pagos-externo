@@ -3,8 +3,6 @@ import { IsString, IsNumber, IsDateString, IsUUID, IsNotEmpty } from 'class-vali
 
 import * as moment from 'moment-timezone';
 
-
-
 export class ConfirmaPagoQrDto {
     
   @IsUUID()
