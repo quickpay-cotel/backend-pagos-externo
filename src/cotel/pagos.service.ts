@@ -189,10 +189,10 @@ export class PagosService {
         CufD: resFact ? resFact.cufd : '', //Código único de factura diaria
         numeroFactura: resFact ? nroFactura : "",  // : número de factura electrónica
         fechaEmision: resFact ? resFact.fechaEmision : '', // Fecha emisión de factura electrónica
-        razonSocial: deudas[0].nombre_factura, // Razón social de la factura electrónica.
-        tipoDocumento: tipoDoc + "", // Tipo de documento de la factura electrónica (1=CI, 5=NIT, 4=Otros documentos, 3=PAS, 2=CIX)
-        numeroDocumento: deudas[0].numero_documento, //Número de documento de la factura electrónica
-        complementoDocumento: deudas[0].complemento_documento, // complmento del nro de documento
+        razonSocial: resFact?deudas[0].nombre_factura:'', // Razón social de la factura electrónica.
+        tipoDocumento: resFact?tipoDoc + "":"", // Tipo de documento de la factura electrónica (1=CI, 5=NIT, 4=Otros documentos, 3=PAS, 2=CIX)
+        numeroDocumento: resFact?deudas[0].numero_documento:"", //Número de documento de la factura electrónica
+        complementoDocumento: resFact?deudas[0].complemento_documento:"", // complmento del nro de documento
         urlFactura: resFact ? resFact.urlVerificacionSin : '' //url de la factura electrónica en el SIAT o servidor del proveedor.
       };
       respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
