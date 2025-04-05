@@ -649,7 +649,11 @@ export class PagosService {
       for (var recibo of facturas) {
         nombres.push(path.parse(recibo.ruta_pdf).name)
       }
-      return nombres;
+      return {
+        message: "comprobantes",
+        result: nombres
+      }
+      //return nombres;
 
     } catch (error) {
       console.log(error);
