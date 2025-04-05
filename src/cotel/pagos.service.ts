@@ -625,7 +625,7 @@ export class PagosService {
         await this.cotelComprobanteReciboRepository.create({
           identificador: 0,
           transaccion_id: transaccion[0].transaccion_id,
-          ruta_pdf: this.storePath + '/recibos/' + 'recibo-' + vAlias + '.pdf',
+          ruta_pdf: this.storePath + '/recibos/' + 'recibo-' + vAlias + '_' + vNumeroUnico + '.pdf',
           fecha_emision: new Date(),
           estado_id: 1000
         });
