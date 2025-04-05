@@ -144,12 +144,14 @@ export class PagosService {
 
     // ============================
 
+    let vNumeroUnico = FuncionesFechas.generarNumeroUnico();
+
     // GENERAR FACTURA 
-    let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias, transactionInsert.transaccion_id);
+    let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias, transactionInsert.transaccion_id,vNumeroUnico+"" );
 
     // GENERAR RECIBOS
 
-    await this.generarRecibo(confirmaPagoQrDto.alias, transactionInsert.transaccion_id);
+    await this.generarRecibo(confirmaPagoQrDto.alias, transactionInsert.transaccion_id,vNumeroUnico+"");
 
     // CONFIRMAR A COTEL
     let respCotel: any
@@ -211,9 +213,9 @@ export class PagosService {
 
     // NOTIFICAR POR CORREO AL CLIENTE
     try {
-      const reciboPath = path.join(this.storePath + '/recibos/' + 'recibo-' + confirmaPagoQrDto.alias + '_' + FuncionesFechas.generarNumeroUnico() +'.pdf');
-      const facturaPathPdf = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '_' + FuncionesFechas.generarNumeroUnico() + '.pdf');
-      const facturaPathXml = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '_' + FuncionesFechas.generarNumeroUnico() + '.xml');
+      const reciboPath = path.join(this.storePath + '/recibos/' + 'recibo-' + confirmaPagoQrDto.alias + '_' + vNumeroUnico +'.pdf');
+      const facturaPathPdf = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '_' + vNumeroUnico + '.pdf');
+      const facturaPathXml = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '_' + vNumeroUnico+ '.xml');
 
       // armar facturas cotel
       let facturasUrl = "";
@@ -305,7 +307,7 @@ export class PagosService {
     return formattedDate;
   }
 
-  private async generarFacturaILLA(vAlias: string, vTransactionId: number): Promise<any> {
+  private async generarFacturaILLA(vAlias: string, vTransactionId: number, vNumeroUnico:string): Promise<any> {
     const ipServidor = os.hostname();
     const fechaInicio = new Date();
     try {
@@ -532,8 +534,8 @@ export class PagosService {
         }
         resFacturacion = resFacturacion.result;
         // ALMACENAR XML Y PDF
-        const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + FuncionesFechas.generarNumeroUnico() +  '.pdf');
-        const filePathXml = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + FuncionesFechas.generarNumeroUnico() +  '.xml');
+        const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + vNumeroUnico +  '.pdf');
+        const filePathXml = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + vNumeroUnico +  '.xml');
         
 
         try {
@@ -585,7 +587,7 @@ export class PagosService {
       return null;
     }
   }
-  private async generarRecibo(vAlias: string, vTransactionId: number): Promise<any> {
+  private async generarRecibo(vAlias: string, vTransactionId: number, vNumeroUnico:string): Promise<any> {
     const ipServidor = os.hostname();
     const fechaInicio = new Date();
     try {
@@ -619,7 +621,7 @@ export class PagosService {
         const pdfBuffer = Buffer.from(await page.pdf({ format: 'A4' }));
         await browser.close();
         // Guardar el buffer como un archivo PDF
-        fs.writeFileSync(this.storePath + '/recibos/' + 'recibo-' + vAlias + '.pdf', pdfBuffer);
+        fs.writeFileSync(this.storePath + '/recibos/' + 'recibo-' + vAlias + '_' + vNumeroUnico + '.pdf', pdfBuffer);
         await this.cotelComprobanteReciboRepository.create({
           identificador: 0,
           transaccion_id: transaccion[0].transaccion_id,
