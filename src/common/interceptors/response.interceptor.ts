@@ -33,14 +33,22 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
         // Modificar la respuesta dependiendo del endpoint
         const request = context.switchToHttp().getRequest();
         const endpoint = request.route.path; // Obtienes el endpoint solicitado
-
         if (endpoint === "/pagos/confirma-pago-qr") { // para SIP
           return {
             codigo: "0000",
             mensaje: "Registro Exitoso",
           };
         }
+        else if (
+          endpoint.includes('/descargar-factura') ||
+          endpoint.includes('/descargar-recibo')
+        ) {
+          // No transformar la respuesta
+          return data;
+        }
         else {
+
+
           return {
             success: true,
             message: data.message,
