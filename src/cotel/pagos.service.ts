@@ -325,9 +325,14 @@ export class PagosService {
 
       let deudas = await this.cotelDeudasRepository.findByAliasPagado(vAlias);
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(vAlias);
+ 
       let tipoDoc = 0;
       if (deudas[0].tipo_documento == 'CI') tipoDoc = 1;
+      if (deudas[0].tipo_documento == 'CEX') tipoDoc = 2;
+      if (deudas[0].tipo_documento == 'PAS') tipoDoc = 3;
+      if (deudas[0].tipo_documento == 'OD') tipoDoc = 4;
       if (deudas[0].tipo_documento == 'NIT') tipoDoc = 5;
+
 
       let nroFactura = await this.cotelComprobanteFacturaRepository.findNroFactura();
       nroFactura = String(nroFactura).split('-')[1]
@@ -527,8 +532,10 @@ export class PagosService {
         }
         resFacturacion = resFacturacion.result;
         // ALMACENAR XML Y PDF
-        const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '.pdf');
-        const filePathXml = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '.xml');
+        const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + FuncionesFechas.generarNumeroUnico() +  '.pdf');
+        const filePathXml = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + FuncionesFechas.generarNumeroUnico() +  '.xml');
+        
+
         try {
           // Decodificar el string Base64
           const bufferPdf = Buffer.from(resFacturacion.pdf, 'base64');
