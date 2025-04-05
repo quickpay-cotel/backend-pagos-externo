@@ -130,7 +130,7 @@ export class PagosService {
     } catch (error) {
       await this.cotelErrorLogsRepository.create({
         alias: confirmaPagoQrDto.alias,
-        metodo: this.getMethodName()+' - recibir pago',
+        metodo: this.getMethodName() + ' - recibir pago',
         mensaje: error.message,
         stack_trace: error.stack,
         ip_servidor: ipServidor,
@@ -147,22 +147,38 @@ export class PagosService {
     let vNumeroUnico = FuncionesFechas.generarNumeroUnico();
 
     // GENERAR FACTURA 
-    let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias, transactionInsert.transaccion_id,vNumeroUnico+"" );
+
+    let nroFactura = await this.cotelComprobanteFacturaRepository.findNroFactura();
+    nroFactura = String(nroFactura).split('-')[1]
+    let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias, transactionInsert.transaccion_id, vNumeroUnico + "", nroFactura);
 
     // GENERAR RECIBOS
 
-    await this.generarRecibo(confirmaPagoQrDto.alias, transactionInsert.transaccion_id,vNumeroUnico+"");
+    await this.generarRecibo(confirmaPagoQrDto.alias, transactionInsert.transaccion_id, vNumeroUnico + "");
+
 
     // CONFIRMAR A COTEL
+
+
     let respCotel: any
     try {
       let deudas = await this.cotelDeudasRepository.findByAliasPagado(confirmaPagoQrDto.alias);
+
+
+      let tipoDoc = 0;
+      if (deudas[0].tipo_documento == 'CI') tipoDoc = 1;
+      if (deudas[0].tipo_documento == 'CEX') tipoDoc = 2;
+      if (deudas[0].tipo_documento == 'PAS') tipoDoc = 3;
+      if (deudas[0].tipo_documento == 'OD') tipoDoc = 4;
+      if (deudas[0].tipo_documento == 'NIT') tipoDoc = 5;
+
+
       let resrevaDeuda = await this.cotelReservaDeudaRepository.findByAlias(confirmaPagoQrDto.alias);
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(confirmaPagoQrDto.alias);
       let requestParaConfirmarCotel = {
         identificador: resrevaDeuda[0].id_transaccion,//Identificador de transacción del pago reservado
         eMail: qrGenerado.correo_para_comprobante,// correo electrónico del cliente que realiza el pago
-        celular : qrGenerado.nro_celular??'',
+        celular: qrGenerado.nro_celular ?? '',
         transaccionWeb: confirmaPagoQrDto.idQr,//Còdigo de transacción de la plataforma de pagos.
         entidad: "QUICKPAY", //descripción entidad que realiza el pago
         canalPago: "QR", //descripción  del canal del pago (QR, WEB, etc.)
@@ -171,10 +187,10 @@ export class PagosService {
         estadoFactura: resFact ? "1" : "0", //indicador de si se generó factura electrónica (0=No, 1=Si)
         Cuf: resFact ? resFact.cuf : '', // de si se generó factura electrónica (0=No, 1=Si)  o	cuf. 
         CufD: resFact ? resFact.cufd : '', //Código único de factura diaria
-        numeroFactura: "",  // : número de factura electrónica
+        numeroFactura: resFact ? nroFactura : "",  // : número de factura electrónica
         fechaEmision: resFact ? resFact.fechaEmision : '', // Fecha emisión de factura electrónica
-        razonSocial: "", // Razón social de la factura electrónica.
-        tipoDocumento: (deudas[0].tipo_documento == 'CI') ? "1" : "5", // Tipo de documento de la factura electrónica (1=CI, 5=NIT, 4=Otros documentos, 3=PAS, 2=CIX)
+        razonSocial: deudas[0].nombre_factura, // Razón social de la factura electrónica.
+        tipoDocumento: tipoDoc + "", // Tipo de documento de la factura electrónica (1=CI, 5=NIT, 4=Otros documentos, 3=PAS, 2=CIX)
         numeroDocumento: deudas[0].numero_documento, //Número de documento de la factura electrónica
         complementoDocumento: deudas[0].complemento_documento, // complmento del nro de documento
         urlFactura: resFact ? resFact.urlVerificacionSin : '' //url de la factura electrónica en el SIAT o servidor del proveedor.
@@ -188,7 +204,7 @@ export class PagosService {
       this.cotelTransacionesRepository.cambiarEstadoTransactionById(transactionInsert.transaccion_id, 1014);
       await this.cotelErrorLogsRepository.create({
         alias: confirmaPagoQrDto.alias,
-        metodo: this.getMethodName()+' - confirmar cotel',
+        metodo: this.getMethodName() + ' - confirmar cotel',
         mensaje: error.message,
         stack_trace: error.stack,
         ip_servidor: ipServidor,
@@ -213,9 +229,9 @@ export class PagosService {
 
     // NOTIFICAR POR CORREO AL CLIENTE
     try {
-      const reciboPath = path.join(this.storePath + '/recibos/' + 'recibo-' + confirmaPagoQrDto.alias + '_' + vNumeroUnico +'.pdf');
+      const reciboPath = path.join(this.storePath + '/recibos/' + 'recibo-' + confirmaPagoQrDto.alias + '_' + vNumeroUnico + '.pdf');
       const facturaPathPdf = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '_' + vNumeroUnico + '.pdf');
-      const facturaPathXml = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '_' + vNumeroUnico+ '.xml');
+      const facturaPathXml = path.join(this.storePath + '/facturas/' + 'factura-' + confirmaPagoQrDto.alias + '_' + vNumeroUnico + '.xml');
 
       // armar facturas cotel
       let facturasUrl = "";
@@ -250,7 +266,7 @@ export class PagosService {
     } catch (error) {
       await this.cotelErrorLogsRepository.create({
         alias: confirmaPagoQrDto.alias,
-        metodo: this.getMethodName()+' - notificar correo electronico',
+        metodo: this.getMethodName() + ' - notificar correo electronico',
         mensaje: error.message,
         stack_trace: error.stack,
         ip_servidor: ipServidor,
@@ -307,7 +323,7 @@ export class PagosService {
     return formattedDate;
   }
 
-  private async generarFacturaILLA(vAlias: string, vTransactionId: number, vNumeroUnico:string): Promise<any> {
+  private async generarFacturaILLA(vAlias: string, vTransactionId: number, vNumeroUnico: string, vNumerofactura: string): Promise<any> {
     const ipServidor = os.hostname();
     const fechaInicio = new Date();
     try {
@@ -327,7 +343,7 @@ export class PagosService {
 
       let deudas = await this.cotelDeudasRepository.findByAliasPagado(vAlias);
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(vAlias);
- 
+
       let tipoDoc = 0;
       if (deudas[0].tipo_documento == 'CI') tipoDoc = 1;
       if (deudas[0].tipo_documento == 'CEX') tipoDoc = 2;
@@ -336,8 +352,6 @@ export class PagosService {
       if (deudas[0].tipo_documento == 'NIT') tipoDoc = 5;
 
 
-      let nroFactura = await this.cotelComprobanteFacturaRepository.findNroFactura();
-      nroFactura = String(nroFactura).split('-')[1]
       // preparar datos para geneta factura
       let datosFactura = {
         /*Identificador de la sucursal o punto de venta en la que se realiza la emisión de la
@@ -393,7 +407,7 @@ export class PagosService {
         /*Número de factura con la cual se emitirá la factura, este valor es definido plenamente
         por la empresa, sin embargo, puede contactarse con el equipo para realizar un
         control sobre la secuencia de ser necesario*/
-        numeroFactura: parseInt(nroFactura), //ricardo dijo q se reinice por año
+        numeroFactura: parseInt(vNumerofactura), //ricardo dijo q se reinice por año
 
         /*Nombre o Razón Social de la empresa a la que se emite la factura*/
         nombreRazonSocial: deudas[0].nombre_factura, //string
@@ -529,14 +543,14 @@ export class PagosService {
 
         // GGENERAR FACTURA
         let resFacturacion = await this.apiIllaService.generarFacturaTelcom(datosFactura);
-        if(!resFacturacion.status){
+        if (!resFacturacion.status) {
           throw new Error(resFacturacion.message);
         }
         resFacturacion = resFacturacion.result;
         // ALMACENAR XML Y PDF
-        const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + vNumeroUnico +  '.pdf');
-        const filePathXml = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + vNumeroUnico +  '.xml');
-        
+        const filePathPdf = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + vNumeroUnico + '.pdf');
+        const filePathXml = path.join(this.storePath + '/facturas', 'factura-' + vAlias + '_' + vNumeroUnico + '.xml');
+
 
         try {
           // Decodificar el string Base64
@@ -575,19 +589,19 @@ export class PagosService {
 
       await this.cotelErrorLogsRepository.create({
         alias: vAlias,
-        metodo: this.getMethodName()+' - generar factura',
+        metodo: this.getMethodName() + ' - generar factura',
         mensaje: error.message,
         stack_trace: error.stack,
         ip_servidor: ipServidor,
         fecha_inicio: fechaInicio,
         fecha_fin: new Date(),
-        parametros: {alias:vAlias,transactin_id:vTransactionId}
+        parametros: { alias: vAlias, transactin_id: vTransactionId }
       });
 
       return null;
     }
   }
-  private async generarRecibo(vAlias: string, vTransactionId: number, vNumeroUnico:string): Promise<any> {
+  private async generarRecibo(vAlias: string, vTransactionId: number, vNumeroUnico: string): Promise<any> {
     const ipServidor = os.hostname();
     const fechaInicio = new Date();
     try {
@@ -635,13 +649,13 @@ export class PagosService {
       this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId, 1014);
       await this.cotelErrorLogsRepository.create({
         alias: vAlias,
-        metodo: this.getMethodName()+' - generar recibo',
+        metodo: this.getMethodName() + ' - generar recibo',
         mensaje: error.message,
         stack_trace: error.stack,
         ip_servidor: ipServidor,
         fecha_inicio: fechaInicio,
         fecha_fin: new Date(),
-        parametros: {alias:vAlias,transactin_id:vTransactionId}
+        parametros: { alias: vAlias, transactin_id: vTransactionId }
       });
     }
   }
