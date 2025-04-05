@@ -160,7 +160,7 @@ export class PagosService {
       let requestParaConfirmarCotel = {
         identificador: resrevaDeuda[0].id_transaccion,//Identificador de transacción del pago reservado
         eMail: qrGenerado.correo_para_comprobante,// correo electrónico del cliente que realiza el pago
-        telefono : qrGenerado.nro_celular??'',
+        celular : qrGenerado.nro_celular??'',
         transaccionWeb: confirmaPagoQrDto.idQr,//Còdigo de transacción de la plataforma de pagos.
         entidad: "QUICKPAY", //descripción entidad que realiza el pago
         canalPago: "QR", //descripción  del canal del pago (QR, WEB, etc.)
