@@ -3,11 +3,13 @@ import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
 import { FuncionesFechas } from '../utils/funciones.fechas';
+import { ApiBrevoService } from '../external-services/api.brevo.service';
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
 
-  constructor() {
+  constructor(  private readonly apiBrevoService: ApiBrevoService,) {
+   
     this.transporter = nodemailer.createTransport({
       host: process.env.MAIL_HOST,
       port: +process.env.MAIL_PORT,
@@ -68,8 +70,6 @@ export class EmailService {
         .replace('{{facturas_cotel}}', facturasUrl);
         
         let attachments = [];
-
-        
         if(reciboPath && fs.existsSync(reciboPath)){
           attachments.push({
             filename: path.basename(reciboPath),    // Nombre del archivo adjunto
@@ -91,16 +91,45 @@ export class EmailService {
             contentType: 'application/xml' // Tipo MIME del archivo (PDF)
           })
         }
-
-      //await this.transporter.sendMail({ // se lenteaa
-      await this.transporter.sendMail({
+       //await this.transporter.sendMail({ // se lenteaa
+      /*await this.transporter.sendMail({
         from: process.env.MAIL_FROM,
         to,
         subject,
         html: emailHtml,
         attachments: attachments
-      });
+      });*/
 
+
+
+        // Enviar por brevooo
+        let attachmentBase64 = [];
+        for(let archivo of attachments){
+          attachmentBase64.push({
+            name:archivo.filename,
+            content: fs.readFileSync(archivo.path, { encoding: 'base64' })
+          })
+        }
+
+        let bodyEmail = {
+          sender:{
+            name:process.env.BREVO_SENDER_NAME,
+            email:process.env.BREVO_SENDER_EMAIL
+          },
+          to:[{
+            email:to,
+            name:paymentData.nombreCliente
+          }],
+          htmlContent:emailHtml,
+          subject:subject,
+          replyTo:{
+            email:process.env.BREVO_REPLYTO_EMAIL,
+            name:process.env.BREVO_REPLYTO_NAME
+          },
+          tags:[process.env.BREVO_TAGS],
+          attachment:attachmentBase64
+        }
+        await this.apiBrevoService.enviarCorreo(bodyEmail);
     } catch (error) {
       console.error('Error al enviar el correo:', error);
       throw error;

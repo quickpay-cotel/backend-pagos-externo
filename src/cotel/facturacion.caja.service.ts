@@ -1,3 +1,4 @@
+import { CotelNotaAnulacionRepository } from './../common/repository/cotel.nota_anulacion.repository';
 import { FacturaAnulacionDto } from './factura.caja.dto/factura-anulacion.dto';
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { IDatabase } from "pg-promise";
@@ -19,6 +20,8 @@ import { CotelNotasDetalleConciliacionRepository } from 'src/common/repository/c
 import { CotelNotasDetalleOrigenRepository } from 'src/common/repository/cotel.notas_detalle_origen.repository';
 import { CotelNotasEmitidasCajaRepository } from 'src/common/repository/cotel.notas_emitidas_caja.repository';
 import { CotelNotasDetalleCreditoDebitoRepository } from 'src/common/repository/cotel.notas_detalle_credito_debito.repository';
+import { CotelFacturaAnulacionRepository } from 'src/common/repository/cotel.factura_anulacion.repository';
+import { ApiBrevoService } from 'src/common/external-services/api.brevo.service';
 
 @Injectable()
 export class FacturacionCajaService {
@@ -34,8 +37,10 @@ export class FacturacionCajaService {
     private readonly cotelNotasDetalleConciliacionRepository: CotelNotasDetalleConciliacionRepository,
     private readonly cotelNotasDetalleOrigenRepository: CotelNotasDetalleOrigenRepository,
     private readonly cotelNotasEmitidasCajaRepository: CotelNotasEmitidasCajaRepository,
-
-    private readonly cotelNotasDetalleCreditoDebitoRepository: CotelNotasDetalleCreditoDebitoRepository
+    private readonly cotelNotasDetalleCreditoDebitoRepository: CotelNotasDetalleCreditoDebitoRepository,
+    private readonly cotelNotaAnulacionRepository:CotelNotaAnulacionRepository,
+    private readonly cotelFacturaAnulacionRepository:CotelFacturaAnulacionRepository,
+    private readonly apiBrevoService: ApiBrevoService
 
   ) {
   }
@@ -90,7 +95,7 @@ export class FacturacionCajaService {
         codigoSucursal: puntosDeventas[0].codigoSucursal,
         //codigoSucursal: 69,
         municipio: "La Paz", //lugar de emisión de la factura
-        telefono: "78873940", //nro de celular del punto de venta
+        telefono: "64074742", //nro de celular del punto de venta
         numeroFactura: parseInt(nroFactura), //ricardo dijo q se reinice por año
         nombreRazonSocial: facturaDeudaDto.razon_social, //string
         codigoTipoDocumentoIdentidad: tipoDoc, //int
@@ -826,6 +831,23 @@ export class FacturacionCajaService {
       if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
+
+      // obtener nota de BD
+      let respNota = await this.cotelNotasCajaRepository.findByIdentificador(notaAnulacionDto.identificadorNota);
+      if(respNota.length!=1){
+        throw new Error("Se ha encontrado "+respNota.length+" notas registrados para el identificador "+notaAnulacionDto.identificadorNota);
+      }
+      // registrar en BD
+      await this.cotelNotaAnulacionRepository.create({
+        nota_caja_id:respNota?respNota[0].nota_caja_id:null,
+        identificador_nota:notaAnulacionDto.identificadorNota,
+        nit:notaAnulacionDto.nit,
+        codigo_motivo:notaAnulacionDto.codigoMotivo,
+        cuf:notaAnulacionDto.cuf,
+        obs:resAnulacion, // respuestaaaa de api de illa
+        estado_id:1000
+      })
+
       return {
         message: resAnulacion.message
       }
@@ -863,6 +885,21 @@ export class FacturacionCajaService {
       if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
+
+      // buscar ID de factura
+
+      // registro en BD
+      await this.cotelFacturaAnulacionRepository.create({
+        factura_emitida_caja_id:0,
+        comprobante_factura:0,
+        identificador:facturaAnulacionDto.identificador,
+        nit:facturaAnulacionDto.nit,
+        codigo_motivo:facturaAnulacionDto.codigoMotivo,
+        cuf:facturaAnulacionDto.cuf,
+        obs:resAnulacion.message,
+        estado_id:1000
+      })
+
       return {
         message: resAnulacion.message
       }

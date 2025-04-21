@@ -1,7 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { IDatabase } from "pg-promise"; // Usamos pg-promise
 @Injectable()
-export class CotelNotasCajaRepository {
+export class CotelNotaAnulacionRepository {
   private db: IDatabase<any>;
 
   constructor(@Inject("DB_CONNECTION") db: IDatabase<any>) {
@@ -15,7 +15,7 @@ export class CotelNotasCajaRepository {
     const marcadores = columnas.map((_, index) => `$${index + 1}`).join(", ");
     // Crear la consulta SQL dinámica
     const query = `
-          INSERT INTO cotel.notas_caja (${columnas.join(", ")})
+          INSERT INTO cotel.nota_anulacion (${columnas.join(", ")})
           VALUES (${marcadores}) RETURNING *
         `;
     const result = t
@@ -23,13 +23,4 @@ export class CotelNotasCajaRepository {
       : await this.db.one(query, params);
     return result;
   }
-
-  async findByIdentificador(pIdentificador): Promise<any> {
-    const query = `select * from cotel.notas_caja nc where nc.identificador = $1 and nc.estado_id = 1000`;
-    const params = [pIdentificador];
-    const result = await this.db.manyOrNone(query, params);
-    return result;
-  }
-
-
 }

@@ -18,16 +18,21 @@ import { CotelNotasDetalleConciliacionRepository } from "./cotel.notas_detalle_c
 import { CotelNotasDetalleOrigenRepository } from "./cotel.notas_detalle_origen.repository";
 import { CotelNotasEmitidasCajaRepository } from "./cotel.notas_emitidas_caja.repository";
 import { CotelNotasDetalleCreditoDebitoRepository } from "./cotel.notas_detalle_credito_debito.repository";
+import { CotelNotaAnulacionRepository } from "./cotel.nota_anulacion.repository";
+import { CotelFacturaAnulacionRepository } from "./cotel.factura_anulacion.repository";
 @Module({
   imports: [], // Importa el ConfigModule para manejar las variables de entorno
   providers: [ CotelContratoRepository, CotelDetalleDeudasRepository, CotelDeudasRepository,
     CotelQrGeneradoRepository, CotelReservaDeudaRepository,CotelDatosConfirmadoQrRepository,CotelTransacionesRepository,
     CotelComprobanteFacturaRepository,CotelComprobanteReciboRepository,CotelErrorLogsRepository, CotelFacturaDetalleCajaRepository,CotelFacturasCajaRepository,CotelFacturasEmitidasCajaRepository,
-    CotelNotasCajaRepository,CotelNotasDetalleConciliacionRepository,CotelNotasDetalleOrigenRepository,CotelNotasEmitidasCajaRepository,CotelNotasDetalleCreditoDebitoRepository
+    CotelNotasCajaRepository,CotelNotasDetalleConciliacionRepository,CotelNotasDetalleOrigenRepository,CotelNotasEmitidasCajaRepository,
+    CotelNotasDetalleCreditoDebitoRepository,CotelNotaAnulacionRepository,CotelFacturaAnulacionRepository
   ],
   exports: [ CotelContratoRepository, CotelDetalleDeudasRepository, CotelDeudasRepository,
     CotelQrGeneradoRepository, CotelReservaDeudaRepository,CotelDatosConfirmadoQrRepository,
     CotelTransacionesRepository,CotelComprobanteFacturaRepository,CotelComprobanteReciboRepository,CotelErrorLogsRepository,CotelFacturaDetalleCajaRepository,CotelFacturasCajaRepository,CotelFacturasEmitidasCajaRepository,
-    CotelNotasCajaRepository,CotelNotasDetalleConciliacionRepository,CotelNotasDetalleOrigenRepository,CotelNotasEmitidasCajaRepository,CotelNotasDetalleCreditoDebitoRepository],
+    CotelNotasCajaRepository,CotelNotasDetalleConciliacionRepository,CotelNotasDetalleOrigenRepository,
+    CotelNotasEmitidasCajaRepository,CotelNotasDetalleCreditoDebitoRepository,CotelNotaAnulacionRepository,CotelFacturaAnulacionRepository
+  ],
 })
 export class RepositoryModule { }

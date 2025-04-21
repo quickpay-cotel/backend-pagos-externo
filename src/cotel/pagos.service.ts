@@ -82,7 +82,7 @@ export class PagosService {
   async confirmaPagoQr(confirmaPagoQrDto: ConfirmaPagoQrDto) {
     const ipServidor = os.hostname();
     const fechaInicio = new Date();
-    let correoCliente = 'alvaro.quispe@quickpay.com.bo'
+    let correoCliente = 'sinemailcotel@quickpay.com.bo'
     let transactionInsert: any;
     try {
       // REGISTRAR CONFIRMACIÓN DE PAGO
@@ -153,13 +153,10 @@ export class PagosService {
     let resFact = await this.generarFacturaILLA(confirmaPagoQrDto.alias, transactionInsert.transaccion_id, vNumeroUnico + "", nroFactura);
 
     // GENERAR RECIBOS
-
     await this.generarRecibo(confirmaPagoQrDto.alias, transactionInsert.transaccion_id, vNumeroUnico + "");
 
 
     // CONFIRMAR A COTEL
-
-
     let respCotel: any
     try {
       let deudas = await this.cotelDeudasRepository.findByAliasPagado(confirmaPagoQrDto.alias);
@@ -260,7 +257,10 @@ export class PagosService {
         monto: confirmaPagoQrDto.monto,
         moneda: confirmaPagoQrDto.moneda,
         fecha: confirmaPagoQrDto.fechaproceso,
+        nombreCliente: confirmaPagoQrDto.nombreCliente,
       };
+    
+
       this.emailService.sendMailNotifyPaymentAndAttachments(correoCliente, 'Confirmación de Pago Recibida',
         paymentDataConfirmado, reciboPath, facturaPathPdf, facturaPathXml, facturasUrl);
     } catch (error) {
