@@ -1,9 +1,11 @@
 import { IsBoolean, IsEmail, IsNumber, IsOptional, IsString, ValidateNested, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsValidAppKey } from 'src/common/decorators/is-valid-appkey.decorator';
 
 export class CajaConciliacionNotaDto {
 
   @IsString()
+  @IsValidAppKey({ message: 'El appkey no es válido.' })
   appkey: string;
 
   @IsString()

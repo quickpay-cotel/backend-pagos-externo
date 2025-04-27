@@ -2,9 +2,11 @@
 import { IsString, IsNumber, IsEmail, IsInt, IsOptional, IsArray, ValidateNested, IsUUID, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 import { FacturaCajaDeudaDetalleDto } from './factura-caja-deuda-detalle.dto';
+import { IsValidAppKey } from 'src/common/decorators/is-valid-appkey.decorator';
 export class FacturaDeudaDto {
 
   @IsString()
+  @IsValidAppKey({ message: 'El appkey no es válido.' })
   appkey: string;
 
   @IsString()
