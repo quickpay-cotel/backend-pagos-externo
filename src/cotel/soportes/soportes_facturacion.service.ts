@@ -329,11 +329,11 @@ export class SoporteFacturacionService {
           fecha_emision: resFacturacion.fechaEmision,
           estado_id: 1000
         });
-        this.cotelTransacionesRepository.cambiarEstadoTransactionById(transaccion[0].transaccion_id, 1011);
+        //this.cotelTransacionesRepository.cambiarEstadoTransactionById(transaccion[0].transaccion_id, 1011);
       }
     } catch (error) {
       // se debe alacenar log del error ....
-      this.cotelTransacionesRepository.cambiarEstadoTransactionById(Number(transaccion[0].transaccion_id), 1014);
+      //this.cotelTransacionesRepository.cambiarEstadoTransactionById(Number(transaccion[0].transaccion_id), 1014);
 
       await this.cotelErrorLogsRepository.create({
         alias: vAlias,
