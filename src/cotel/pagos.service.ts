@@ -263,6 +263,7 @@ export class PagosService {
 
       this.emailService.sendMailNotifyPaymentAndAttachments(correoCliente, 'Confirmación de Pago Recibida',
         paymentDataConfirmado, reciboPath, facturaPathPdf, facturaPathXml, facturasUrl);
+        
     } catch (error) {
       await this.cotelErrorLogsRepository.create({
         alias: confirmaPagoQrDto.alias,
@@ -402,7 +403,7 @@ export class PagosService {
       - 33352645
         Queda a criterio de la empresa, tomando en cuenta que este valor se imprime en la representación gráfica, en la cabecera parte superior izquierda
         */
-        telefono: "78873940", //string // definir
+        telefono: "64074742", //string // definir
 
         /*Número de factura con la cual se emitirá la factura, este valor es definido plenamente
         por la empresa, sin embargo, puede contactarse con el equipo para realizar un

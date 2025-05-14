@@ -23,4 +23,15 @@ export class CotelErrorLogsRepository {
       : await this.db.one(query, params);
     return result;
   }
+  async findErrorGeneraFacturaByAlias(pALias): Promise<any> {
+    const query = `  select e.* 
+    from cotel.error_logs e
+    where e.alias = $1
+    and e.metodo = 'PagosService.generarFacturaILLA - generar factura' `;
+    const params = [pALias];
+    const result = await this.db.manyOrNone(query, params);
+    return result;
+  }
+
+
 }
