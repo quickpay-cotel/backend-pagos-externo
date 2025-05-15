@@ -88,12 +88,17 @@ export class PagosService {
       // REGISTRAR CONFIRMACIÓN DE PAGO
       let qrGenerado = await this.cotelQrGeneradoRepository.findByAlias(confirmaPagoQrDto.alias);
       if (!qrGenerado) throw new Error("QR no generado por QUICKPAY");
+
       correoCliente = qrGenerado.correo_para_comprobante;
       if (qrGenerado.monto != confirmaPagoQrDto.monto) throw new Error("Monto no es igual al QR generado");
+
+      let  deudasReservados = await this.cotelReservaDeudaRepository.findByQrGeneradoId(qrGenerado.qr_generado_id);
+      if (!deudasReservados || deudasReservados.length == 0) throw new Error("No existe pagos reservados");
+
+      let  transaccion = await this.cotelTransacionesRepository.findByAlias(confirmaPagoQrDto.alias);
+      if (transaccion && transaccion.length > 0) throw new Error("Transacción ya se encuentra Registrado en QUICKPAY");
+
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, mensaje: 'PROCESANDO PAGO' });
-      let reserva = await this.cotelReservaDeudaRepository.findByAlias(confirmaPagoQrDto.alias);
-      if (reserva && reserva[0].estado_reserva_id == 1005) throw new Error("Pago ya se encuentra Registrado en QUICKPAY");
-      let deudasReservados = [];
 
       await this.db.tx(async (t) => {
         let insertConfirmQr = await this.cotelDatosConfirmadoQrRepository.create({
@@ -120,8 +125,7 @@ export class PagosService {
           estado_id: 1000
         });
 
-        deudasReservados = await this.cotelReservaDeudaRepository.findByQrGeneradoId(qrGenerado.qr_generado_id);
-        if (!deudasReservados || deudasReservados.length == 0) throw new Error("No existe deudas reservadas");
+       
         // cambair estado de deudas reservados a PAGADO
         for (const deudaReservado of deudasReservados) {
           await this.cotelReservaDeudaRepository.cambiarEstadoReservaByDeudaId(deudaReservado.deuda_id, 1005);
