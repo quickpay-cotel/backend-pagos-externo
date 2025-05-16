@@ -30,7 +30,7 @@ export class SoporteFacturacionService {
   ) {
   }
 
-  public async generarFacturaILLAPorSoportre(vAlias: string): Promise<any> {
+  public async generarFacturaILLAPorSoportre(vAlias: string, vVerificaFacturaError: boolean): Promise<any> {
     const ipServidor = os.hostname();
     const fechaInicio = new Date();
     let transaccion = null;
@@ -49,14 +49,17 @@ export class SoporteFacturacionService {
       }
 
       // verificar si hubo error generar factura
-      let errorLog = await this.cotelErrorLogsRepository.findErrorGeneraFacturaByAlias(vAlias)
-      if (!errorLog || errorLog.length == 0) {
-        //throw new Error(`No se ha encontrado error en la facturación para el alias`);
+      if (vVerificaFacturaError) {
+        let errorLog = await this.cotelErrorLogsRepository.findErrorGeneraFacturaByAlias(vAlias)
+        if (!errorLog || errorLog.length == 0) {
+          //throw new Error(`No se ha encontrado error en la facturación para el alias`);
           return {
-          message: 'No se ha encontrado error en la facturación para el alias',
-          result: {}
+            message: 'No se ha encontrado error en la facturación para el alias',
+            result: {}
+          }
         }
       }
+
 
       // verifica si realmente no tiene una factura
       let comprobanteFactura = await this.cotelComprobanteFacturaRepository.findByAlias(vAlias)
@@ -72,7 +75,7 @@ export class SoporteFacturacionService {
       let productos = await this.apiIllaService.obtenerProductos();
       if (!productos || productos.length == 0) {
         //throw new Error(`no se pudo obtener productos de SIAT`);
-         return {
+        return {
           message: 'no se pudo obtener productos de SIAT',
           result: {}
         }
@@ -330,6 +333,11 @@ export class SoporteFacturacionService {
           estado_id: 1000
         });
         //this.cotelTransacionesRepository.cambiarEstadoTransactionById(transaccion[0].transaccion_id, 1011);
+      } else {
+        return {
+          message: 'No cuenta con productos para generar factura',
+          result: {}
+        }
       }
     } catch (error) {
       // se debe alacenar log del error ....
