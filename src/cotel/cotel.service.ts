@@ -72,9 +72,9 @@ export class CotelService {
     try {
 
       // verificar si tiene transaccion reservadp api COTEL
-      if (deudasDto.transaccionReservado) {
+      /*if (deudasDto.transaccionReservado) {
         await this.liberarReserva(deudasDto.transaccionReservado);
-      }
+      }*/
 
       // obtener datos del contrato o telefono api COTEL
       let datosCliente = await this.apiCotelService.consultaDatosCliente(deudasDto.consultaDatosClienteDto);
@@ -221,9 +221,9 @@ export class CotelService {
 
       });
     } catch (error) {
-      if (idTransaccion) {
+      /*if (idTransaccion) {
         await this.liberarReserva(idTransaccion);
-      }
+      }*/
       throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
   }
