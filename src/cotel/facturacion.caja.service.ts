@@ -372,7 +372,7 @@ export class FacturacionCajaService {
           canal_caja_sucursal: facturaDeudaDto.canal_caja_sucursal,
           canal_caja_usuario: facturaDeudaDto.canal_caja_usuario,
 
-          tipo_documento_caja_id: 1015,
+          tipo_documento_caja_id: 1016,
           estado_id: 1000
         }
       );
@@ -890,8 +890,8 @@ export class FacturacionCajaService {
 
       // registro en BD
       await this.cotelFacturaAnulacionRepository.create({
-        factura_emitida_caja_id:0,
-        comprobante_factura:0,
+        /*factura_emitida_caja_id:0,
+        comprobante_factura:0,*/
         identificador:facturaAnulacionDto.identificador,
         nit:facturaAnulacionDto.nit,
         codigo_motivo:facturaAnulacionDto.codigoMotivo,
@@ -937,6 +937,19 @@ export class FacturacionCajaService {
       if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
+
+      // registro en BD
+      await this.cotelFacturaAnulacionRepository.create({
+        /*factura_emitida_caja_id:0,
+        comprobante_factura:0,*/
+        identificador:facturaAnulacionDto.identificador,
+        nit:facturaAnulacionDto.nit,
+        codigo_motivo:facturaAnulacionDto.codigoMotivo,
+        cuf:facturaAnulacionDto.cuf,
+        obs:resAnulacion.message,
+        estado_id:1000
+      })
+
       return {
         message: resAnulacion.message
       }
