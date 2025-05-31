@@ -46,7 +46,7 @@ export class FuncionesGenerales {
     const restriccionActiva = esUltimoDia && horaDecimal >= horaLimite;
 
     const mensaje = restriccionActiva
-      ? `No se puede generar QR: hoy es el último día del mes y ya son las ${horaLimite}:00 o más en Bolivia.`
+      ? `No se puede generar QR: Sistema en mantenimiento.`
       : `El pago está permitido.`;
 
     return {
