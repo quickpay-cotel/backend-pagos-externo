@@ -22,6 +22,40 @@ export class FuncionesGenerales {
     // Retorna la imagen como una cadena Base64 en el formato adecuado
     return `data:${mimeType};base64,${base64File}`;
   }
+
+  public puedePagar() {
+    const horaLimite = Number(process.env.HORA_CORTE_PAGO) || 17;
+
+    const ahora = new Date().toLocaleString('en-US', { timeZone: 'America/La_Paz' });
+    const fechaBolivia = new Date(ahora);
+
+    const dia = fechaBolivia.getDate();
+    const mes = fechaBolivia.getMonth();
+    const anio = fechaBolivia.getFullYear();
+
+    const hora = fechaBolivia.getHours();
+    const minutos = fechaBolivia.getMinutes();
+    const segundos = fechaBolivia.getSeconds();
+
+    const horaDecimal = hora + minutos / 60 + segundos / 3600;
+
+    const ultimoDiaDelMes = new Date(anio, mes + 1, 0).getDate();
+    const esUltimoDia = dia === ultimoDiaDelMes;
+
+    // Solo se bloquea si es último día del mes Y la hora es 17:00 o más
+    const restriccionActiva = esUltimoDia && horaDecimal >= horaLimite;
+
+    const mensaje = restriccionActiva
+      ? `No se puede generar QR: hoy es el último día del mes y ya son las ${horaLimite}:00 o más en Bolivia.`
+      : `El pago está permitido.`;
+
+    return {
+      permitido: !restriccionActiva,
+      mensaje
+    };
+  }
+
+
   // Método para obtener el tipo MIME del archivo basado en su extensión
   private getMimeType(fileName: string): string {
     const extname = path.extname(fileName).toLowerCase();

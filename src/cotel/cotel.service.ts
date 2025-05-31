@@ -21,6 +21,7 @@ import { CotelTransacionesRepository } from "src/common/repository/cotel.transac
 import * as fs from 'fs';
 import * as path from 'path';
 import * as puppeteer from 'puppeteer';
+import { FuncionesGenerales } from "src/common/utils/funciones.generales";
 
 @Injectable()
 export class CotelService {
@@ -70,6 +71,12 @@ export class CotelService {
   async generaQr(deudasDto: DeudasDto) {
     let idTransaccion = '';
     try {
+
+      const funcionesGenerales = new FuncionesGenerales();
+      let resPuedePagar = funcionesGenerales.puedePagar();
+      if(!resPuedePagar.permitido){
+         throw new Error(resPuedePagar.mensaje);
+      }
 
       // verificar si tiene transaccion reservadp api COTEL
       /*if (deudasDto.transaccionReservado) {

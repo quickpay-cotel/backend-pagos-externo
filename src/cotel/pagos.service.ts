@@ -494,7 +494,7 @@ export class PagosService {
         • True=Declaro que el NIT es lo que indicó y confirmó el cliente
         • False=El NIT debe ser validado en la transacción de emisión
         */
-        codigoExcepcion: false, //bool 
+        codigoExcepcion: true, //bool 
         /*
         Texto que permite identificar que usuario del sistema de la empresa que emitió el
         documento fiscal. Ejemplos:
