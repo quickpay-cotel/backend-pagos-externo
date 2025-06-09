@@ -13,7 +13,7 @@ export class ApiIllaService {
     // Configuración de Axios
     this.axiosInstance = axios.create({
       baseURL: process.env.ILLA_API,
-      timeout: 60000,
+      timeout: 120000,
     });
 
     // Configuración del interceptor de solicitud
@@ -47,12 +47,12 @@ export class ApiIllaService {
       console.log(`Respuesta de ${response.config.url}:`, response.status);
       return response;
     }, error => {
-      
+
       const logData = error.config ? error.config['logData'] : {};
       const logEntry = {
-          ...logData,
-          response_status: error.response ? error.response.status : 'NO_RESPONSE',
-          response_data: error.response ? error.response.data : 'NO_RESPONSE_DATA',
+        ...logData,
+        response_status: error.response ? error.response.status : 'NO_RESPONSE',
+        response_data: error.response ? error.response.data : 'NO_RESPONSE_DATA',
       };
       // Guardamos la solicitud y respuesta en la base de datos
       this.saveLogToDatabase(logEntry);
@@ -136,6 +136,55 @@ export class ApiIllaService {
       throw "Error al obtener productos";
     }
   }
+  async crearProductos(objProductoEmpresa: any) {
+    try {
+      let nuevoProducto = [{
+        "empresaProductoId": 0, //Identificador generado por Illasoft cuando un producto es creado. Este valor es el requerido para la emisión de la factura
+        "empresaId": 155, //Identificador asignado por Illasoft a la empresa. Valor válido 33
+        "estadoProductoId": 34, //Identificador del estado del producto en el sistema Illasoft. Valores posibles: 32=NUEVO, 33=HISTORICO y 34=PARA VENTA.
+        "estadoProductoDescripcion": "PARA VENTA", //Descripción del estado del producto en el sistema Illasoft. Valores posibles: 32=NUEVO, 33=HISTORICO y 34=PARA VENTA
+        /*Código de la actividad económica a la cual pertenece el producto. Se aclara que existe un paso previo de
+        sincronización con el SIN, el cual retorna los códigos de Actividad Económica de su empresa. Este listado
+        fue remitido en archivo Excel para el trabajo de homologación de productos.*/
+        "actividadEconomica": "610000", // NOS VA DAR COTEL...
+        "codProductoSin": "99100", //Código producto asignado por el SIN. // CONSULTAR CON RJOVE
+        "codProductoEmpresa": objProductoEmpresa.codigo_item,  //Código producto asignado por su empresa // ESTA EN LA API DE CONSULTA DE DEUDAS DE COTEL
+        "descripcion": objProductoEmpresa.descripcion_item,//Descripción del producto registrado // ESTA EN API
+        "precioUnitario": objProductoEmpresa.monto_unitario , //Precio referencial que puede poseer un producto. Se aclara que en la emisión e la factura este valor es modificable en el request // ESTA EN API
+        "precioPorMayor": 0,
+        "descuentoPrecioUnitario": 0,
+        "descuentoPrecioPorMayor": 0,
+        "cantidadInicial": 0, //Valor que indica la cantidad que se tiene del producto (aplicable cuando se lleva control de inventarios). Por defecto presentará un valor 0 o 1 // COTEL API
+        "codUnidadMedida": 2, //Código de la unidad de medida definida por el SIN. En el proceso de homologación se define la unidad de medida. // PREGUNTAR CON RJOVE
+        "unidadMedida": "SERVICIO" //Descripción de la unidad de medida vinculada al código de unidad de medida. // PREGUNTAR CON RJOVE
+      }]
+      await this.generarToken();
+      
+      const response = await this.axiosInstance.post(`/api/v1/customers/${process.env.ILLA_NIT}/products/${process.env.ILLA_CODIGO_EMPRESA}`,nuevoProducto, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      if (!response.data.status) {
+        throw "Error al registrar producto "+objProductoEmpresa.codigo_item;
+      } 
+    } catch (error) {
+      throw "Error al registrar productos "+objProductoEmpresa.codigo_item+" : "+error;
+    }
+  }
+  async activarProductos() {
+    try {
+      await this.generarToken();
+      await this.axiosInstance.post(`/api/v1/customers/${process.env.ILLA_NIT}/products/${process.env.ILLA_CODIGO_EMPRESA}/activated`,{}, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   async obtenerPuntosVentas() {
     try {
       await this.generarToken();
@@ -170,7 +219,7 @@ export class ApiIllaService {
       throw "Error al obtener sucursales";
     }
   }
-  
+
   private async saveLogToDatabase(logEntry: any) {
     try {
       await this.bd.query(
@@ -184,7 +233,7 @@ export class ApiIllaService {
     }
   }
 
-  
+
   async notaConciliacion(body: any) {
     try {
       await this.generarToken();
@@ -231,7 +280,7 @@ export class ApiIllaService {
         },
         data: body, // Pasamos el body correctamente
       });
-      
+
       return response.data; // Devuelve el payload en caso de éxito
     } catch (error) {
       // Capturar el payload del error si existe
@@ -251,7 +300,7 @@ export class ApiIllaService {
         },
         data: body, // Pasamos el body correctamente
       });
-      
+
       return response.data; // Devuelve el payload en caso de éxito
     } catch (error) {
       // Capturar el payload del error si existe
@@ -271,7 +320,7 @@ export class ApiIllaService {
         },
         data: body, // Pasamos el body correctamente
       });
-      
+
       return response.data; // Devuelve el payload en caso de éxito
     } catch (error) {
       // Capturar el payload del error si existe
@@ -282,5 +331,5 @@ export class ApiIllaService {
       }
     }
   }
-  
+
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as puppeteer from 'puppeteer';
@@ -261,8 +261,27 @@ export class SoporteFacturacionService {
         for (var deudaDetalle of detalleDeuda) {
           if (deudaDetalle.genera_factura === 'S') {
             let productoSIAJ = productos.filter(r => r.codProductoEmpresa == deudaDetalle.codigo_item);
-            if (productoSIAJ.length != 1) {
-              throw new Error(`el producto ${deudaDetalle.codigo_item} no se encuentra registrado en SIAT`);
+
+            // si no hay producto en SIAT creamos nuevo
+            if (productoSIAJ.length == 0) {
+              try {
+                let nuevoProducto = {
+                  codigo_item: deudaDetalle.codigo_item,
+                  descripcion_item: deudaDetalle.descripcion_item,
+                  monto_unitario: parseFloat(deudaDetalle.monto_unitario),
+                };
+                await this.crearYactivarProductoSiat(nuevoProducto);
+                productos = await this.apiIllaService.obtenerProductos();
+                productoSIAJ = productos.filter(r => r.codProductoEmpresa == deudaDetalle.codigo_item);
+                if (productoSIAJ.length != 1) {
+                  throw new Error(`el producto ${deudaDetalle.codigo_item} no existe o esta registrado mas de 1 vez en SIAT`);
+                }
+              } catch (error) {
+                throw new Error(`Erorr al crear producto ${deudaDetalle.codigo_item}  en SIAT, mensaje tecnico: ${error}`);
+              }
+            }
+            if (productoSIAJ.length > 1) {
+              throw new Error(`el producto ${deudaDetalle.codigo_item} se ha registrado mas de  1 vez en SIAT`);
             }
 
             let detalleDeuda = {
@@ -353,6 +372,7 @@ export class SoporteFacturacionService {
         fecha_fin: new Date(),
         parametros: { alias: vAlias }
       });
+       throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
 
 
@@ -394,5 +414,9 @@ export class SoporteFacturacionService {
     if (stackLines.length < 3) return 'UnknownMethod';
 
     return stackLines[2].trim().split(' ')[1]; // Extrae el nombre del método
+  }
+  private async crearYactivarProductoSiat(objProductoEmpresa: any) {
+    await this.apiIllaService.crearProductos(objProductoEmpresa);
+    await this.apiIllaService.activarProductos();
   }
 }

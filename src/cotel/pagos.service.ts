@@ -92,10 +92,10 @@ export class PagosService {
       correoCliente = qrGenerado.correo_para_comprobante;
       if (qrGenerado.monto != confirmaPagoQrDto.monto) throw new Error("Monto no es igual al QR generado");
 
-      let  deudasReservados = await this.cotelReservaDeudaRepository.findByQrGeneradoId(qrGenerado.qr_generado_id);
+      let deudasReservados = await this.cotelReservaDeudaRepository.findByQrGeneradoId(qrGenerado.qr_generado_id);
       if (!deudasReservados || deudasReservados.length == 0) throw new Error("No existe pagos reservados");
 
-      let  transaccion = await this.cotelTransacionesRepository.findByAlias(confirmaPagoQrDto.alias);
+      let transaccion = await this.cotelTransacionesRepository.findByAlias(confirmaPagoQrDto.alias);
       if (transaccion && transaccion.length > 0) throw new Error("Transacción ya se encuentra Registrado en QUICKPAY");
 
       await this.notificationsGateway.sendNotification('notification', { alias: confirmaPagoQrDto.alias, mensaje: 'PROCESANDO PAGO' });
@@ -125,7 +125,7 @@ export class PagosService {
           estado_id: 1000
         });
 
-       
+
         // cambair estado de deudas reservados a PAGADO
         for (const deudaReservado of deudasReservados) {
           await this.cotelReservaDeudaRepository.cambiarEstadoReservaByDeudaId(deudaReservado.deuda_id, 1005);
@@ -190,10 +190,10 @@ export class PagosService {
         CufD: resFact ? resFact.cufd : '', //Código único de factura diaria
         numeroFactura: resFact ? nroFactura : "",  // : número de factura electrónica
         fechaEmision: resFact ? resFact.fechaEmision : '', // Fecha emisión de factura electrónica
-        razonSocial: resFact?deudas[0].nombre_factura:'', // Razón social de la factura electrónica.
-        tipoDocumento: resFact?tipoDoc + "":"", // Tipo de documento de la factura electrónica (1=CI, 5=NIT, 4=Otros documentos, 3=PAS, 2=CIX)
-        numeroDocumento: resFact?deudas[0].numero_documento:"", //Número de documento de la factura electrónica
-        complementoDocumento: resFact?deudas[0].complemento_documento:"", // complmento del nro de documento
+        razonSocial: resFact ? deudas[0].nombre_factura : '', // Razón social de la factura electrónica.
+        tipoDocumento: resFact ? tipoDoc + "" : "", // Tipo de documento de la factura electrónica (1=CI, 5=NIT, 4=Otros documentos, 3=PAS, 2=CIX)
+        numeroDocumento: resFact ? deudas[0].numero_documento : "", //Número de documento de la factura electrónica
+        complementoDocumento: resFact ? deudas[0].complemento_documento : "", // complmento del nro de documento
         urlFactura: resFact ? resFact.urlVerificacionSin : '' //url de la factura electrónica en el SIAT o servidor del proveedor.
       };
       respCotel = await this.apiCotelService.confirmarPago(requestParaConfirmarCotel);
@@ -263,11 +263,11 @@ export class PagosService {
         fecha: confirmaPagoQrDto.fechaproceso,
         nombreCliente: confirmaPagoQrDto.nombreCliente,
       };
-    
+
 
       this.emailService.sendMailNotifyPaymentAndAttachments(correoCliente, 'Confirmación de Pago Recibida',
         paymentDataConfirmado, reciboPath, facturaPathPdf, facturaPathXml, facturasUrl);
-        
+
     } catch (error) {
       await this.cotelErrorLogsRepository.create({
         alias: confirmaPagoQrDto.alias,
@@ -513,8 +513,27 @@ export class PagosService {
         for (var deudaDetalle of detalleDeuda) {
           if (deudaDetalle.genera_factura === 'S') {
             let productoSIAJ = productos.filter(r => r.codProductoEmpresa == deudaDetalle.codigo_item);
-            if (productoSIAJ.length != 1) {
-              throw new Error(`el producto ${deudaDetalle.codigo_item} no se encuentra registrado en SIAT`);
+
+            // si no hay producto en SIAT creamos nuevo
+            if (productoSIAJ.length == 0) {
+              try {
+                let nuevoProducto = {
+                  codigo_item: deudaDetalle.codigo_item,
+                  descripcion_item: deudaDetalle.descripcion_item,
+                  monto_unitario: parseFloat(deudaDetalle.monto_unitario),
+                };
+                await this.crearYactivarProductoSiat(nuevoProducto);
+                productos = await this.apiIllaService.obtenerProductos();
+                productoSIAJ = productos.filter(r => r.codProductoEmpresa == deudaDetalle.codigo_item);
+                if (productoSIAJ.length != 1) {
+                  throw new Error(`el producto ${deudaDetalle.codigo_item} no existe o esta registrado mas de 1 vez en SIAT`);
+                }
+              } catch (error) {
+                throw new Error(`Erorr al crear producto ${deudaDetalle.codigo_item}  en SIAT`);
+              }
+            }
+            if (productoSIAJ.length > 1) {
+              throw new Error(`el producto ${deudaDetalle.codigo_item} se ha registrado mas de  1 vez en SIAT`);
             }
 
             let detalleDeuda = {
@@ -697,6 +716,11 @@ export class PagosService {
     if (stackLines.length < 3) return 'UnknownMethod';
 
     return stackLines[2].trim().split(' ')[1]; // Extrae el nombre del método
+  }
+
+  private async crearYactivarProductoSiat(objProductoEmpresa: any) {
+    await this.apiIllaService.crearProductos(objProductoEmpresa);
+    await this.apiIllaService.activarProductos();
   }
 }
 
