@@ -126,7 +126,7 @@ export class EmailService {
   }
   
   async sendMailNotifyPaymentAndAttachmentsSoporte(to: string, subject: string, 
-    facturaPathPdf:string,facturaPathXml:string,paymentData: any) {
+    facturaPathPdf:string,facturaPathXml:string,reciboPath:string,paymentData: any) {
     try {
 
       const templateEmail = path.join(process.cwd(), 'plantillas/correos', `notificacion_pago.html`);
@@ -156,6 +156,13 @@ export class EmailService {
             filename: path.basename(facturaPathXml),    // Nombre del archivo adjunto
             path: facturaPathXml,             // Ruta del archivo PDF a adjuntar
             contentType: 'application/xml' // Tipo MIME del archivo (PDF)
+          })
+        }
+        if(reciboPath && fs.existsSync(reciboPath)){
+          attachments.push({
+            filename: path.basename(reciboPath),    // Nombre del archivo adjunto
+            path: reciboPath,             // Ruta del archivo PDF a adjuntar
+            contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
           })
         }
         // Enviar por brevooo

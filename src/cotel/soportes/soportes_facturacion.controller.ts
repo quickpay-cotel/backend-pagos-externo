@@ -14,6 +14,10 @@ export class SoporteFacturacionController {
     const vVerificarErrorFactura = verificarErrorFactura !== 'false';
     return await this.soporteFacturacionService.generarFacturaILLAPorSoportre(alias, vVerificarErrorFactura);
   }
+  @Get("genera-recibo/:alias")
+  async generarRecibo( @Param("alias") alias: string) {
+    return await this.soporteFacturacionService.generarReciboPorSoporte(alias);
+  }
   @Get("puede-generar-qr")
   async puedeGenerarQR() {
     const funcionesGenerales = new FuncionesGenerales();
@@ -22,6 +26,5 @@ export class SoporteFacturacionController {
       message: resPuedePagar.mensaje,
       result: resPuedePagar.permitido
     }
-
   }
 }

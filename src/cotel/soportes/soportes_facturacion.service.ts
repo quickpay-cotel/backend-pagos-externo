@@ -1,3 +1,5 @@
+import { FuncionesGenerales } from './../../common/utils/funciones.generales';
+import { FuncionesFechas } from './../../common/utils/funciones.fechas';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -12,12 +14,14 @@ import { CotelDeudasRepository } from 'src/common/repository/cotel.deudas.reposi
 import { CotelQrGeneradoRepository } from 'src/common/repository/cotel.qr_generado.repository';
 import { CotelDetalleDeudasRepository } from 'src/common/repository/cotel.detalle-deudas.repository';
 import { CotelComprobanteFacturaRepository } from 'src/common/repository/cotel.comprobante_factura.repository';
-import { FuncionesFechas } from 'src/common/utils/funciones.fechas';
 import { EmailService } from 'src/common/correos/email.service';
+import { CotelService } from '../cotel.service';
+import { CotelComprobanteReciboRepository } from 'src/common/repository/cotel.comprobante_recibo.repository';
 @Injectable()
 export class SoporteFacturacionService {
 
   private storePath = path.posix.join(process.cwd(), 'store');
+  private plantillasPath = path.posix.join(process.cwd(), 'plantillas');
   constructor(
     private readonly apiIllaService: ApiIllaService,
     private readonly cotelTransacionesRepository: CotelTransacionesRepository,
@@ -27,6 +31,8 @@ export class SoporteFacturacionService {
     private readonly cotelDetalleDeudasRepository: CotelDetalleDeudasRepository,
     private readonly cotelComprobanteFacturaRepository: CotelComprobanteFacturaRepository,
     private readonly emailService: EmailService,
+    private readonly cotelService: CotelService,
+    private readonly cotelComprobanteReciboRepository: CotelComprobanteReciboRepository,
   ) {
   }
 
@@ -372,7 +378,7 @@ export class SoporteFacturacionService {
         fecha_fin: new Date(),
         parametros: { alias: vAlias }
       });
-       throw new HttpException(error, HttpStatus.NOT_FOUND);
+      throw new HttpException(error, HttpStatus.NOT_FOUND);
     }
 
 
@@ -388,7 +394,7 @@ export class SoporteFacturacionService {
       let paymentDataConfirmado = {
         numeroTransaccion: 'nombre cliente: ' + vNombreCliente + ' alias: ' + vAlias + ' correo cliente: ' + qrGenerado2.correo_para_comprobante + ' telefono cliente: ' + qrGenerado2.nro_celular,
       };
-      this.emailService.sendMailNotifyPaymentAndAttachmentsSoporte("beltran.ricardo@gmail.com", 'Facturas generados por SOPORTE ', facturaPathPdf, facturaPathXml, paymentDataConfirmado);
+      this.emailService.sendMailNotifyPaymentAndAttachmentsSoporte("beltran.ricardo@gmail.com", 'Facturas generados por SOPORTE ', facturaPathPdf, facturaPathXml, null, paymentDataConfirmado);
     } catch (error) {
       await this.cotelErrorLogsRepository.create({
         alias: vAlias,
@@ -405,6 +411,86 @@ export class SoporteFacturacionService {
       message: 'factura para alias ' + vAlias + ' generado correctamente',
       result: vDatosfacturaIlla
     }
+  }
+  public async generarReciboPorSoporte(vAlias: string): Promise<any> {
+    const ipServidor = os.hostname();
+    const fechaInicio = new Date();
+    try {
+
+      // Generar contenido HTML dinámico para RECIBO
+      let transaccion = await this.cotelTransacionesRepository.findByAlias(vAlias);
+      let datosDeuda = await this.cotelService.datosDeudasPagadoByAlias(vAlias);
+
+      if (datosDeuda.detalle.length > 0) {
+        const htmlContent = this.renderTemplate(this.plantillasPath + '/recibo.html', {
+          nroRecibo: datosDeuda.nroRecibo.slice(-8) ?? 0,
+          nombreCliente: datosDeuda.nombreCliente ?? '',
+          //fechaPago: datosDeuda.fechaPago ?? '',
+          fechaPago: FuncionesFechas.obtenerFechaFormato,
+          metodoPago: datosDeuda.metodoPago ?? '',
+          tableRows: datosDeuda.detalle.map(item => `
+         <tr>
+           <td>${item.mensajeDeuda ?? ''}</td>
+           <td style="text-align: center;">${item.periodo ?? ''}</td>
+           <td style="text-align: right;">${parseFloat(item.monto).toFixed(2)}</td>
+         </tr>
+       `).join(''),
+          totalPagado: `${parseFloat(datosDeuda.totalPagado).toFixed(2)}`
+        });
+        // modo ROOT  no es recomendable, pero pide el almalinux
+        const browser = await puppeteer.launch({
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        });
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: 'load' });
+        const pdfBuffer = Buffer.from(await page.pdf({ format: 'A4' }));
+        await browser.close();
+        let vNumeroUnico = FuncionesFechas.generarNumeroUnico();
+        // Guardar el buffer como un archivo PDF
+        fs.writeFileSync(this.storePath + '/recibos/' + 'recibo-' + vAlias + '_' + vNumeroUnico + '.pdf', pdfBuffer);
+        await this.cotelComprobanteReciboRepository.create({
+          identificador: 0,
+          transaccion_id: transaccion[0].transaccion_id,
+          ruta_pdf: this.storePath + '/recibos/' + 'recibo-' + vAlias + '_' + vNumeroUnico + '.pdf',
+          fecha_emision: new Date(),
+          estado_id: 1000
+        });
+        const reciboPath = path.join(this.storePath + '/recibos/' + 'recibo-' + vAlias + '_' + vNumeroUnico + '.pdf');
+
+        let qrGenerado2 = await this.cotelQrGeneradoRepository.findByAlias(vAlias);
+
+        // notificar por correo al cliente con las comprobantes de pago, facturas y recibos
+        let paymentDataConfirmado = {
+          numeroTransaccion: 'nombre cliente: ' + datosDeuda.nombreCliente + ' alias: ' + vAlias + ' correo cliente: ' + qrGenerado2.correo_para_comprobante + ' telefono cliente: ' + qrGenerado2.nro_celular,
+        };
+        this.emailService.sendMailNotifyPaymentAndAttachmentsSoporte("beltran.ricardo@gmail.com", 'Recibos generados por SOPORTE ', null, null, reciboPath, paymentDataConfirmado);
+
+        const funcionesGenerales = new FuncionesGenerales();
+
+        return funcionesGenerales.convertToBase64(reciboPath);
+
+      }
+    } catch (error) {
+      await this.cotelErrorLogsRepository.create({
+        alias: vAlias,
+        metodo: this.getMethodName() + ' - generar recibo',
+        mensaje: error.message,
+        stack_trace: error.stack,
+        ip_servidor: ipServidor,
+        fecha_inicio: fechaInicio,
+        fecha_fin: new Date(),
+        parametros: { alias: vAlias }
+      });
+    }
+  }
+  // Función para reemplazar los marcadores en la plantilla
+  private renderTemplate(templatePath: string, data: any): string {
+    let template = fs.readFileSync(templatePath, 'utf8');
+    Object.keys(data).forEach(key => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      template = template.replace(regex, data[key]);
+    });
+    return template;
   }
   private getMethodName(): string {
     const stack = new Error().stack;
