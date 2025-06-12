@@ -262,7 +262,8 @@ export class CotelService {
       fechaPago: deudasPagado[0].fecha_registro,
       metodoPago: 'QR',
       totalPagado: deudasPagado[0].monto_sip,
-      detalle: detallePago
+      detalle: detallePago,
+      mensajeContrato:deudasPagado[0].mensaje_contrato
     }
     return datosDeuda;
   }

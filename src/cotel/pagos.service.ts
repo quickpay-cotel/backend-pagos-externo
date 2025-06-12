@@ -124,8 +124,6 @@ export class PagosService {
           estado_transaccion_id: 1010,
           estado_id: 1000
         });
-
-
         // cambair estado de deudas reservados a PAGADO
         for (const deudaReservado of deudasReservados) {
           await this.cotelReservaDeudaRepository.cambiarEstadoReservaByDeudaId(deudaReservado.deuda_id, 1005);
@@ -639,6 +637,7 @@ export class PagosService {
           nroRecibo: datosDeuda.nroRecibo.slice(-8) ?? 0,
           nombreCliente: datosDeuda.nombreCliente ?? '',
           //fechaPago: datosDeuda.fechaPago ?? '',
+          mensajeContrato: datosDeuda.mensajeContrato,
           fechaPago: FuncionesFechas.obtenerFechaFormato,
           metodoPago: datosDeuda.metodoPago ?? '',
           tableRows: datosDeuda.detalle.map(item => `
