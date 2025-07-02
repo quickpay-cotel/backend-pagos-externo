@@ -1,15 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
-import * as fs from 'fs';
-import * as path from 'path';
-import { FuncionesFechas } from '../utils/funciones.fechas';
-import { ApiBrevoService } from '../external-services/api.brevo.service';
+import { Injectable } from "@nestjs/common";
+import * as nodemailer from "nodemailer";
+import * as fs from "fs";
+import * as path from "path";
+import { FuncionesFechas } from "../utils/funciones.fechas";
+import { ApiBrevoService } from "../external-services/api.brevo.service";
+import { MailtrapClient } from "mailtrap";
+
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
 
-  constructor(  private readonly apiBrevoService: ApiBrevoService,) {
-   
+  constructor(private readonly apiBrevoService: ApiBrevoService) {
     this.transporter = nodemailer.createTransport({
       host: process.env.MAIL_HOST,
       port: +process.env.MAIL_PORT,
@@ -26,180 +27,234 @@ export class EmailService {
 
   async sendMailNotifyPayment(to: string, subject: string, paymentData: any) {
     try {
-
-      const templateEmail = path.join(process.cwd(), 'plantillas/correos', `notificacion_pago.html`);
+      const templateEmail = path.join(
+        process.cwd(),
+        "plantillas/correos",
+        `notificacion_pago.html`
+      );
       const emailTemplate = fs.readFileSync(templateEmail).toString();
 
       const emailHtml = emailTemplate
-        .replace('{{nombre_cliente}}', paymentData.nombreCliente)
-        .replace('{{numero_transaccion}}', paymentData.numeroTransaccion.slice(-8))
-        .replace('{{monto}}', paymentData.monto)
-        .replace('{{moneda}}', paymentData.moneda)
-        .replace('{{fecha}}', FuncionesFechas.obtenerFechaFormato)
-        .replace('{{nombre_empresa}}', paymentData.nombreEmpresa)
-        .replace('{{anio_actual}}','' )
-      //await this.transporter.sendMail({ // se lenteaa
+        .replace("{{nombre_cliente}}", paymentData.nombreCliente)
+        .replace(
+          "{{numero_transaccion}}",
+          paymentData.numeroTransaccion.slice(-8)
+        )
+        .replace("{{monto}}", paymentData.monto)
+        .replace("{{moneda}}", paymentData.moneda)
+        .replace("{{fecha}}", FuncionesFechas.obtenerFechaFormato)
+        .replace("{{nombre_empresa}}", paymentData.nombreEmpresa)
+        .replace("{{anio_actual}}", "");
       this.transporter.sendMail({
         from: process.env.MAIL_FROM,
         to,
         subject,
-        html: emailHtml
+        html: emailHtml,
       });
-
     } catch (error) {
-      console.error('Error al enviar el correo:', error);
+      console.error("Error al enviar el correo:", error);
       throw error;
     }
   }
-  
-  async sendMailNotifyPaymentAndAttachments(to: string, subject: string, paymentData: any, reciboPath:string,
-    facturaPathPdf:string,facturaPathXml:string,facturasUrl:string) {
-    try {
 
-      const templateEmail = path.join(process.cwd(), 'plantillas/correos', `notificacion_pago.html`);
+  async sendMailNotifyPaymentAndAttachments(
+    to: string,
+    subject: string,
+    paymentData: any,
+    reciboPath: string,
+    facturaPathPdf: string,
+    facturaPathXml: string,
+    facturasUrl: string
+  ) {
+    try {
+      const templateEmail = path.join(
+        process.cwd(),
+        "plantillas/correos",
+        `notificacion_pago.html`
+      );
       const emailTemplate = fs.readFileSync(templateEmail).toString();
 
       const emailHtml = emailTemplate
-        .replace('{{nombre_cliente}}', paymentData.nombreCliente)
-        .replace('{{numero_transaccion}}', paymentData.numeroTransaccion.slice(-8))
-        .replace('{{monto}}', paymentData.monto)
-        .replace('{{moneda}}', paymentData.moneda)
-        .replace('{{fecha}}', FuncionesFechas.obtenerFechaFormato)
-        .replace('{{nombre_empresa}}', paymentData.nombreEmpresa)
-        .replace('{{anio_actual}}', '')
-        .replace('{{facturas_cotel}}', facturasUrl);
-        
-        let attachments = [];
-        if(reciboPath && fs.existsSync(reciboPath)){
-          attachments.push({
-            filename: path.basename(reciboPath),    // Nombre del archivo adjunto
-            path: reciboPath,             // Ruta del archivo PDF a adjuntar
-            contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
-          })
-        }
-        if(facturaPathPdf  && fs.existsSync(facturaPathPdf)){
-          attachments.push({
-            filename: path.basename(facturaPathPdf),    // Nombre del archivo adjunto
-            path: facturaPathPdf,             // Ruta del archivo PDF a adjuntar
-            contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
-          })
-        }
-        if(facturaPathXml  && fs.existsSync(facturaPathXml)){
-          attachments.push({
-            filename: path.basename(facturaPathXml),    // Nombre del archivo adjunto
-            path: facturaPathXml,             // Ruta del archivo PDF a adjuntar
-            contentType: 'application/xml' // Tipo MIME del archivo (PDF)
-          })
-        }
-        // Enviar por brevooo
-        let attachmentBase64 = [];
-        for(let archivo of attachments){
-          attachmentBase64.push({
-            name:archivo.filename,
-            content: fs.readFileSync(archivo.path, { encoding: 'base64' })
-          })
-        }
+        .replace("{{nombre_cliente}}", paymentData.nombreCliente)
+        .replace(
+          "{{numero_transaccion}}",
+          paymentData.numeroTransaccion.slice(-8)
+        )
+        .replace("{{monto}}", paymentData.monto)
+        .replace("{{moneda}}", paymentData.moneda)
+        .replace("{{fecha}}", FuncionesFechas.obtenerFechaFormato)
+        .replace("{{nombre_empresa}}", paymentData.nombreEmpresa)
+        .replace("{{anio_actual}}", "")
+        .replace("{{facturas_cotel}}", facturasUrl);
 
-        let bodyEmail = {
-          sender:{
-            name:process.env.BREVO_SENDER_NAME,
-            email:process.env.BREVO_SENDER_EMAIL
+      let attachments = [];
+      if (reciboPath && fs.existsSync(reciboPath)) {
+        attachments.push({
+          filename: path.basename(reciboPath), // Nombre del archivo adjunto
+          path: reciboPath, // Ruta del archivo PDF a adjuntar
+          contentType: "application/pdf", // Tipo MIME del archivo (PDF)
+        });
+      }
+      if (facturaPathPdf && fs.existsSync(facturaPathPdf)) {
+        attachments.push({
+          filename: path.basename(facturaPathPdf), // Nombre del archivo adjunto
+          path: facturaPathPdf, // Ruta del archivo PDF a adjuntar
+          contentType: "application/pdf", // Tipo MIME del archivo (PDF)
+        });
+      }
+      if (facturaPathXml && fs.existsSync(facturaPathXml)) {
+        attachments.push({
+          filename: path.basename(facturaPathXml), // Nombre del archivo adjunto
+          path: facturaPathXml, // Ruta del archivo PDF a adjuntar
+          contentType: "application/xml", // Tipo MIME del archivo (PDF)
+        });
+      }
+      // Enviar por brevooo
+      let attachmentBase64 = [];
+      for (let archivo of attachments) {
+        attachmentBase64.push({
+          name: archivo.filename,
+          content: fs.readFileSync(archivo.path, { encoding: "base64" }),
+        });
+      }
+
+      let bodyEmail = {
+        sender: {
+          name: process.env.BREVO_SENDER_NAME,
+          email: process.env.BREVO_SENDER_EMAIL,
+        },
+        to: [
+          {
+            email: to,
+            name: paymentData.nombreCliente,
           },
-          to:[{
-            email:to,
-            name:paymentData.nombreCliente
-          }],
-          htmlContent:emailHtml,
-          subject:subject,
-          replyTo:{
-            email:process.env.BREVO_REPLYTO_EMAIL,
-            name:process.env.BREVO_REPLYTO_NAME
-          },
-          tags:[process.env.BREVO_TAGS],
-          attachment:attachmentBase64
-        }
-        await this.apiBrevoService.enviarCorreo(bodyEmail);
+        ],
+        htmlContent: emailHtml,
+        subject: subject,
+        replyTo: {
+          email: process.env.BREVO_REPLYTO_EMAIL,
+          name: process.env.BREVO_REPLYTO_NAME,
+        },
+        tags: [process.env.BREVO_TAGS],
+        attachment: attachmentBase64,
+      };
+      await this.apiBrevoService.enviarCorreo(bodyEmail);
     } catch (error) {
-      console.error('Error al enviar el correo:', error);
+      console.error("Error al enviar el correo:", error);
       throw error;
     }
   }
-  
-  async sendMailNotifyPaymentAndAttachmentsSoporte(to: string, subject: string, 
-    facturaPathPdf:string,facturaPathXml:string,reciboPath:string,paymentData: any) {
-    try {
 
-      const templateEmail = path.join(process.cwd(), 'plantillas/correos', `notificacion_pago.html`);
+  async sendMailNotifyPaymentAndAttachmentsSoporte(
+    to: string,
+    subject: string,
+    facturaPathPdf: string,
+    facturaPathXml: string,
+    reciboPath: string,
+    paymentData: any
+  ) {
+    try {
+      const templateEmail = path.join(
+        process.cwd(),
+        "plantillas/correos",
+        `notificacion_pago.html`
+      );
       const emailTemplate = fs.readFileSync(templateEmail).toString();
 
       const emailHtml = emailTemplate
-        .replace('{{nombre_cliente}}', '')
-        .replace('{{numero_transaccion}}', paymentData.numeroTransaccion)
-        .replace('{{monto}}', '')
-        .replace('{{moneda}}', '')
-        .replace('{{fecha}}', FuncionesFechas.obtenerFechaFormato)
-        .replace('{{nombre_empresa}}', '')
-        .replace('{{anio_actual}}', '')
-        .replace('{{facturas_cotel}}', '');
-        
-        let attachments = [];
- 
-        if(facturaPathPdf  && fs.existsSync(facturaPathPdf)){
-          attachments.push({
-            filename: path.basename(facturaPathPdf),    // Nombre del archivo adjunto
-            path: facturaPathPdf,             // Ruta del archivo PDF a adjuntar
-            contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
-          })
-        }
-        if(facturaPathXml  && fs.existsSync(facturaPathXml)){
-          attachments.push({
-            filename: path.basename(facturaPathXml),    // Nombre del archivo adjunto
-            path: facturaPathXml,             // Ruta del archivo PDF a adjuntar
-            contentType: 'application/xml' // Tipo MIME del archivo (PDF)
-          })
-        }
-        if(reciboPath && fs.existsSync(reciboPath)){
-          attachments.push({
-            filename: path.basename(reciboPath),    // Nombre del archivo adjunto
-            path: reciboPath,             // Ruta del archivo PDF a adjuntar
-            contentType: 'application/pdf' // Tipo MIME del archivo (PDF)
-          })
-        }
-        // Enviar por brevooo
-        let attachmentBase64 = [];
-        for(let archivo of attachments){
-          attachmentBase64.push({
-            name:archivo.filename,
-            content: fs.readFileSync(archivo.path, { encoding: 'base64' })
-          })
-        }
+        .replace("{{nombre_cliente}}", "")
+        .replace("{{numero_transaccion}}", paymentData.numeroTransaccion)
+        .replace("{{monto}}", "")
+        .replace("{{moneda}}", "")
+        .replace("{{fecha}}", FuncionesFechas.obtenerFechaFormato)
+        .replace("{{nombre_empresa}}", "")
+        .replace("{{anio_actual}}", "")
+        .replace("{{facturas_cotel}}", "");
 
-        let bodyEmail = {
-          sender:{
-            name:process.env.BREVO_SENDER_NAME,
-            email:process.env.BREVO_SENDER_EMAIL
-          },
-          to:[{
-            email:to,
-            name:'Ricardo Beltran'
+      let attachments = [];
+
+      if (facturaPathPdf && fs.existsSync(facturaPathPdf)) {
+        attachments.push({
+          filename: path.basename(facturaPathPdf), // Nombre del archivo adjunto
+          path: facturaPathPdf, // Ruta del archivo PDF a adjuntar
+          contentType: "application/pdf", // Tipo MIME del archivo (PDF)
+        });
+      }
+      if (facturaPathXml && fs.existsSync(facturaPathXml)) {
+        attachments.push({
+          filename: path.basename(facturaPathXml), // Nombre del archivo adjunto
+          path: facturaPathXml, // Ruta del archivo PDF a adjuntar
+          contentType: "application/xml", // Tipo MIME del archivo (PDF)
+        });
+      }
+      if (reciboPath && fs.existsSync(reciboPath)) {
+        attachments.push({
+          filename: path.basename(reciboPath), // Nombre del archivo adjunto
+          path: reciboPath, // Ruta del archivo PDF a adjuntar
+          contentType: "application/pdf", // Tipo MIME del archivo (PDF)
+        });
+      }
+      // Enviar por brevooo
+      let attachmentBase64 = [];
+      for (let archivo of attachments) {
+        attachmentBase64.push({
+          name: archivo.filename,
+          content: fs.readFileSync(archivo.path, { encoding: "base64" }),
+        });
+      }
+
+      let bodyEmail = {
+        sender: {
+          name: process.env.BREVO_SENDER_NAME,
+          email: process.env.BREVO_SENDER_EMAIL,
+        },
+        to: [
+          {
+            email: to,
+            name: "Ricardo Beltran",
           },
           {
-            email:"alvaroquispesegales@gmail.com",
-            name:'Alvaro Quispe'
-          }
-        ],
-          htmlContent:emailHtml,
-          subject:subject,
-          replyTo:{
-            email:process.env.BREVO_REPLYTO_EMAIL,
-            name:process.env.BREVO_REPLYTO_NAME
+            email: "alvaroquispesegales@gmail.com",
+            name: "Alvaro Quispe",
           },
-          tags:[process.env.BREVO_TAGS_SOPORTE],
-          attachment:attachmentBase64
-        }
-        await this.apiBrevoService.enviarCorreo(bodyEmail);
+        ],
+        htmlContent: emailHtml,
+        subject: subject,
+        replyTo: {
+          email: process.env.BREVO_REPLYTO_EMAIL,
+          name: process.env.BREVO_REPLYTO_NAME,
+        },
+        tags: [process.env.BREVO_TAGS_SOPORTE],
+        attachment: attachmentBase64,
+      };
+      await this.apiBrevoService.enviarCorreo(bodyEmail);
     } catch (error) {
-      console.error('Error al enviar el correo:', error);
+      console.error("Error al enviar el correo:", error);
+      throw error;
+    }
+  }
+  async SentMail() {
+    // Configuración de token y correos
+    const TOKEN = "c008c14238f40e2fe94b0dfcf9e4dd77";
+    const SENDER_EMAIL = "notificaciones@quickpay.com.bo";
+    const RECIPIENT_EMAIL = "alvaro.quispe.segales@gmail.com";
+
+    const client = new MailtrapClient({ token: TOKEN });
+
+    const sender = { name: "Mailtrap Test", email: SENDER_EMAIL };
+
+    try {
+      const response = await client.send({
+        from: sender,
+        to: [{ email: RECIPIENT_EMAIL }],
+        subject: "Hello from Mailtrap!",
+        text: "Welcome to Mailtrap Sending!",
+      });
+      console.log("Correo enviado con éxito:", response);
+      return response; // Opcional: devuelve respuesta si quieres usarla
+    } catch (error) {
+      console.error("Error enviando correo:", error);
+      // Opcional: lanzar error para manejarlo fuera
       throw error;
     }
   }

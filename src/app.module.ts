@@ -1,4 +1,4 @@
-import { Module, OnApplicationShutdown } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { CotelModule } from "./cotel/cotel.module";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";

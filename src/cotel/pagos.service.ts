@@ -598,7 +598,10 @@ export class PagosService {
           cufd: resFacturacion.cufd,
           cuf: resFacturacion.cuf,
           fecha_emision: resFacturacion.fechaEmision,
-          estado_id: 1000
+          estado_id: 1000,
+          nro_factura:vNumerofactura,
+          url_verificacion:resFacturacion.urlVerificacion,
+          url_verificacion_sin:resFacturacion.urlVerificacionSin
         });
         this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId, 1011);
         return resFacturacion;

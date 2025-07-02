@@ -36,6 +36,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
     "hashids": "^2.3.0",
+    "mailtrap": "^4.1.0",
     "moment-timezone": "^0.5.48",
     "nodemailer": "^6.10.0",
     "pg": "^8.13.1",

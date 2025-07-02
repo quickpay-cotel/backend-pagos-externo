@@ -40,7 +40,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       responseBody = {
         success: false,
         message: typeof message === "object" ? message["message"] || message : message,
-        
         timestamp: new Date().toISOString(),
       };
     }
