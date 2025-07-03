@@ -32,7 +32,7 @@ export class PagosController {
   }
   @Get("envioCorreo")
   async envioCorreo() {
-    await this.emailService.SentMail();
+    await this.emailService.SentMailPrueba();
     return 'Email sent!';
   }
 }

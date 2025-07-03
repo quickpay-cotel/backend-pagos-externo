@@ -233,11 +233,11 @@ export class EmailService {
       throw error;
     }
   }
-  async SentMail() {
+  async SentMailPrueba() {
     // Configuración de token y correos
-    const TOKEN = "c008c14238f40e2fe94b0dfcf9e4dd77";
-    const SENDER_EMAIL = "notificaciones@quickpay.com.bo";
-    const RECIPIENT_EMAIL = "alvaro.quispe.segales@gmail.com";
+    const TOKEN = "xxxx";
+    const SENDER_EMAIL = "xxxx";
+    const RECIPIENT_EMAIL = "xxx";
 
     const client = new MailtrapClient({ token: TOKEN });
 
@@ -256,6 +256,77 @@ export class EmailService {
       console.error("Error enviando correo:", error);
       // Opcional: lanzar error para manejarlo fuera
       throw error;
+    }
+  }
+
+  async sendMailNotifyPaymentAndAttachmentsMailtrap(
+    to: string,
+    subject: string,
+    paymentData: any,
+    reciboPath: string,
+    facturaPathPdf: string,
+    facturaPathXml: string,
+    facturasUrl: string
+  ) {
+    const TOKEN = process.env.MAILTRAP_TOKEN;
+    const SENDER_EMAIL = process.env.MAILTRAP_SENDER_EMAIL;
+
+    const client = new MailtrapClient({ token: TOKEN });
+    const sender = { name: "Quickpay Notificaciones", email: SENDER_EMAIL };
+
+    try {
+      const templateEmail = path.join(
+        process.cwd(),
+        "plantillas/correos",
+        `notificacion_pago.html`
+      );
+      const emailTemplate = fs.readFileSync(templateEmail).toString();
+
+      const emailHtml = emailTemplate
+        .replace("{{nombre_cliente}}", paymentData.nombreCliente)
+        .replace(
+          "{{numero_transaccion}}",
+          paymentData.numeroTransaccion.slice(-8)
+        )
+        .replace("{{monto}}", paymentData.monto)
+        .replace("{{moneda}}", paymentData.moneda)
+        .replace("{{fecha}}", FuncionesFechas.obtenerFechaFormato)
+        .replace("{{nombre_empresa}}", paymentData.nombreEmpresa)
+        .replace("{{anio_actual}}", new Date().getFullYear().toString())
+        .replace("{{facturas_cotel}}", facturasUrl);
+
+      const attachments = [];
+
+      const addAttachmentIfExists = (filePath: string, mimeType: string) => {
+        if (filePath && fs.existsSync(filePath)) {
+          attachments.push({
+            filename: path.basename(filePath),
+            content: fs.readFileSync(filePath, { encoding: "base64" }),
+            type: mimeType,
+            disposition: "attachment",
+          });
+        }
+      };
+
+      addAttachmentIfExists(reciboPath, "application/pdf");
+      addAttachmentIfExists(facturaPathPdf, "application/pdf");
+      addAttachmentIfExists(facturaPathXml, "application/xml");
+
+      const response = await client.send({
+        from: sender,
+        to: [{ email: to, name: paymentData.nombreCliente }],
+        subject,
+        html: emailHtml,
+        attachments,
+      });
+
+      console.log("Correo enviado con éxito:", response);
+
+      return true;
+    } catch (error) {
+      console.error("Error enviando correo:", error);
+      //throw error;
+      return false;
     }
   }
 }
