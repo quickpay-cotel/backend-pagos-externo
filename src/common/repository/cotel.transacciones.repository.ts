@@ -43,9 +43,9 @@ export class CotelTransacionesRepository {
 
     // Último parámetro es el ID
     const query = `
-    UPDATE pagos.deudas
+    UPDATE pagos.transacciones
     SET ${setClause}
-    WHERE deuda_id = $${columnas.length + 1}
+    WHERE transaccion_id = $${columnas.length + 1}
     RETURNING *
   `;
 

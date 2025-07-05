@@ -264,7 +264,7 @@ export class PagosService {
 
 
       //this.emailService.sendMailNotifyPaymentAndAttachments(correoCliente, 'Confirmación de Pago Recibida',paymentDataConfirmado, reciboPath, facturaPathPdf, facturaPathXml, facturasUrl);
-      let correoEnviado = this.emailService.sendMailNotifyPaymentAndAttachmentsMailtrap(correoCliente, 'Confirmación de Pago Recibida',paymentDataConfirmado, reciboPath, facturaPathPdf, facturaPathXml, facturasUrl);
+      let correoEnviado = await this.emailService.sendMailNotifyPaymentAndAttachmentsMailtrap(correoCliente, 'Confirmación de Pago Recibida',paymentDataConfirmado, reciboPath, facturaPathPdf, facturaPathXml, facturasUrl);
       this.cotelTransacionesRepository.update(transactionInsert.transaccion_id,{correo_enviado: correoEnviado});
        
 
