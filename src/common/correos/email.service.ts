@@ -258,7 +258,6 @@ export class EmailService {
       throw error;
     }
   }
-
   async sendMailNotifyPaymentAndAttachmentsMailtrap(
     to: string,
     subject: string,
@@ -297,20 +296,25 @@ export class EmailService {
 
       const attachments = [];
 
-      const addAttachmentIfExists = (filePath: string, mimeType: string) => {
+      const addAttachmentIfExists = async (filePath: string, mimeType: string) => {
         if (filePath && fs.existsSync(filePath)) {
-          attachments.push({
-            filename: path.basename(filePath),
-            content: fs.readFileSync(filePath, { encoding: "base64" }),
-            type: mimeType,
-            disposition: "attachment",
-          });
+          const fileContent = await fs.promises.readFile(filePath);
+          if (fileContent.length > 0) {
+            attachments.push({
+              filename: path.basename(filePath),
+              content: fileContent.toString("base64"),
+              type: mimeType,
+              disposition: "attachment",
+            });
+          } else {
+            console.warn(`El archivo adjunto ${filePath} está vacío y no se adjuntará.`);
+          }
         }
       };
 
-      addAttachmentIfExists(reciboPath, "application/pdf");
-      addAttachmentIfExists(facturaPathPdf, "application/pdf");
-      addAttachmentIfExists(facturaPathXml, "application/xml");
+      await addAttachmentIfExists(reciboPath, "application/pdf");
+      await addAttachmentIfExists(facturaPathPdf, "application/pdf");
+      await addAttachmentIfExists(facturaPathXml, "application/xml");
 
       const response = await client.send({
         from: sender,
@@ -325,7 +329,6 @@ export class EmailService {
       return true;
     } catch (error) {
       console.error("Error enviando correo:", error);
-      //throw error;
       return false;
     }
   }
