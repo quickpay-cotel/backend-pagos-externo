@@ -304,12 +304,12 @@ export class SoporteFacturacionService {
 
               cantidad: deudaDetalle.cantidad,//decimal
               //Monto que representa el precio del producto o servicio. Acepta 2 decimales.
-              precioUnitario: parseFloat(deudaDetalle.monto_unitario),//decimal
+              precioUnitario: parseFloat(deudaDetalle.monto_unitario??0),//decimal
               /*Monto que representa el descuento aplicado al producto o servicio vendido. Acepta
               2 decimales. Se debe considerar que este valor no llega al Registro de Compras del
               cliente dado que el SIN asume que este tipo de descuentos pueden considerarse
               neteados*/
-              montoDescuento: 0 //decimal
+              montoDescuento: parseFloat(deudaDetalle.monto_descuento_item??0),//decimal
             }
             lstDetalleDeuda.push(detalleDeuda);
           }
@@ -394,7 +394,14 @@ export class SoporteFacturacionService {
       let paymentDataConfirmado = {
         numeroTransaccion: 'nombre cliente: ' + vNombreCliente + ' alias: ' + vAlias + ' correo cliente: ' + qrGenerado2.correo_para_comprobante + ' telefono cliente: ' + qrGenerado2.nro_celular,
       };
-      this.emailService.sendMailNotifyPaymentAndAttachmentsSoporte("beltran.ricardo@gmail.com", 'Facturas generados por SOPORTE ', facturaPathPdf, facturaPathXml, null, paymentDataConfirmado);
+      this.emailService.sendMailNotifyPaymentAndAttachmentsMailtrap(
+        "beltran.ricardo@gmail.com", 
+        'Facturas generados por SOPORTE ', 
+        paymentDataConfirmado,
+        null,
+        facturaPathPdf, 
+        facturaPathXml, 
+        null);
     } catch (error) {
       await this.cotelErrorLogsRepository.create({
         alias: vAlias,
