@@ -1032,8 +1032,7 @@ export class FacturacionCajaService {
         cuf: facturaAnulacionDto.cuf,
         motivo: motivoString,
       };
-      let resAnulacion =
-        await this.apiIllaService.facturaTelcomAnulacion(payload);
+      let resAnulacion = await this.apiIllaService.facturaTelcomAnulacion(payload);
       if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
