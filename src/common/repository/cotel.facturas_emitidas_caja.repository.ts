@@ -23,4 +23,30 @@ export class CotelFacturasEmitidasCajaRepository {
       : await this.db.one(query, params);
     return result;
   }
+  
+  async findByFilters(
+    filters: Record<string, any>,
+    t?: IDatabase<any>
+  ): Promise<any[]> {
+    const keys = Object.keys(filters);
+    const values = Object.values(filters);
+
+    // Si no hay filtros, devolver todo
+    let whereClause = "";
+    if (keys.length > 0) {
+      const conditions = keys.map((key, index) => `${key} = $${index + 1}`);
+      whereClause = `WHERE ${conditions.join(" AND ")}`;
+    }
+
+    const query = `
+    SELECT * FROM cotel.facturas_emitidas_caja
+    ${whereClause}
+  `;
+
+    const result = t
+      ? await t.any(query, values)
+      : await this.db.any(query, values);
+
+    return result;
+  }
 }
