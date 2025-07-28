@@ -605,7 +605,7 @@ export class PagosService {
           nro_factura:vNumerofactura,
           url_verificacion:resFacturacion.urlVerificacion,
           url_verificacion_sin:resFacturacion.urlVerificacionSin,
-          estado_factura_id: 1020
+          estado_factura_id: 1019 // PROCESADO
         });
         this.cotelTransacionesRepository.cambiarEstadoTransactionById(vTransactionId, 1011);
         return resFacturacion;
