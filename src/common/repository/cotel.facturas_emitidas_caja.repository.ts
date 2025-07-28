@@ -44,8 +44,42 @@ export class CotelFacturasEmitidasCajaRepository {
   `;
 
     const result = t
-      ? await t.any(query, values)
-      : await this.db.any(query, values);
+      ? await t.manyOrNone(query, values)
+      : await this.db.manyOrNone(query, values);
+
+    return result;
+  }
+
+    async update(
+    id: number,
+    data: Record<string, any>,
+    t?: IDatabase<any>
+  ): Promise<any> {
+    const columnas = Object.keys(data);
+    const valores = Object.values(data);
+
+    if (columnas.length === 0) {
+      throw new Error("No hay campos para actualizar");
+    }
+
+    // Construir SET dinámicamente: "col1 = $1, col2 = $2, ..."
+    const setClause = columnas
+      .map((col, index) => `${col} = $${index + 1}`)
+      .join(", ");
+
+    // Último parámetro es el ID
+    const query = `
+    UPDATE cotel.facturas_emitidas_caja
+    SET ${setClause}
+    WHERE factura_emitida_caja_id = $${columnas.length + 1}
+    RETURNING *
+  `;
+
+    const params = [...valores, id];
+
+    const result = t
+      ? await t.one(query, params)
+      : await this.db.one(query, params);
 
     return result;
   }

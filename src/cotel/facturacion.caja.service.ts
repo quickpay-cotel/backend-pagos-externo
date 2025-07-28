@@ -1001,11 +1001,17 @@ export class FacturacionCajaService {
       let factura_emitida_caja_id = null;
       let comprobante_factura = null;
 
-      let facturasEmitidoPorQrQuickpay = await this.cotelComprobanteFacturaRepository.findByFilters({ cuf: facturaAnulacionDto.cuf, estado_id: 1000, });
+      let facturasEmitidoPorQrQuickpay = await this.cotelComprobanteFacturaRepository.findByFilters({
+          cuf: facturaAnulacionDto.cuf,
+          estado_id: 1000,
+        });
       if (facturasEmitidoPorQrQuickpay.length == 1) {
         comprobante_factura = facturasEmitidoPorQrQuickpay[0].comprobante_factura;
       }
-      let facturasEmitidosEnCajaCotel = await this.cotelFacturasEmitidasCajaRepository.findByFilters({cuf: facturaAnulacionDto.cuf,estado_id: 1000,});
+      let facturasEmitidosEnCajaCotel = await this.cotelFacturasEmitidasCajaRepository.findByFilters({
+          cuf: facturaAnulacionDto.cuf,
+          estado_id: 1000,
+        });
       if (facturasEmitidosEnCajaCotel.length == 1) {
         factura_emitida_caja_id = facturasEmitidosEnCajaCotel[0].factura_emitida_caja_id;
       }
@@ -1032,15 +1038,16 @@ export class FacturacionCajaService {
         cuf: facturaAnulacionDto.cuf,
         motivo: motivoString,
       };
-      let resAnulacion = await this.apiIllaService.facturaTelcomAnulacion(payload);
+      let resAnulacion =
+        await this.apiIllaService.facturaTelcomAnulacion(payload);
       if (!resAnulacion.status) {
         throw new Error(resAnulacion.message);
       }
 
       // registro en BD
       await this.cotelFacturaAnulacionRepository.create({
-        factura_emitida_caja_id:factura_emitida_caja_id,
-        comprobante_factura:comprobante_factura,
+        factura_emitida_caja_id: factura_emitida_caja_id,
+        comprobante_factura: comprobante_factura,
         identificador: facturaAnulacionDto.identificador,
         nit: facturaAnulacionDto.nit,
         codigo_motivo: facturaAnulacionDto.codigoMotivo,
@@ -1048,6 +1055,14 @@ export class FacturacionCajaService {
         obs: resAnulacion.message,
         estado_id: 1000,
       });
+
+      if (comprobante_factura) {
+        await this.cotelComprobanteFacturaRepository.update(  comprobante_factura,{estado_factura_id: 1020});
+      }
+      if (factura_emitida_caja_id) {
+        await this.cotelFacturasEmitidasCajaRepository.update(factura_emitida_caja_id,{estado_factura_id: 1020});
+
+      }
 
       return {
         message: resAnulacion.message,
